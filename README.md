@@ -42,25 +42,38 @@ The practical assignment is mandatory and should be performed by groups of, pref
 Your assignment should be submitted on moodle with a compressed file containing the following items:
 
 slides for presentation (PDF format) focusing on the main issues of the project for a 10 minutes presentation; any additional information that cannot be presented in the 10 min slot can be included as annexes to the presentation;
+
 the source of a ready-to-execute dynamic report or notebook with all the code necessary to run to obtain the results you present, including any complementary files needed to execute your report (e.g. data files, data objects).
 
 ### Suggested organization:
 
 problem definition (1 slide)
+
 data understanding:  concise summary, focusing on the main findings (2 slides)
+
 data preparation: outline, focusing on the main operations  (2 slides)
+
 descriptive modelling (1 slide) - if performed
+
 predictive modelling with experimental results (2 slides)
+
 conclusions, limitations and future work (1 slide)
+
 annexes
+
 TOTAL: max 40 slides
 
 ### Grades
 The grading of the practical assignment is distributed as follows: 
+
 - Task 1 (30%)
+
 - Task 2 (30%)
+
 - Task 3 (15%)
+
 - Presentation (25%) - mandatory 
+
 - Extra Task  (15%)
 
 
