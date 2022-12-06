@@ -1,7 +1,7 @@
-
-library(remotes)
-install_github("bczernecki/climate")
+# library(remotes)
+# install_github("bczernecki/climate")
 library(climate)
+library(lubridate)
 
 # get the nearest station
 # be aware that the nearest station can change over time as new stations can appear
