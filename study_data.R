@@ -1,10 +1,13 @@
 
 library(tidyverse)
+library(lubridate)
+
 
 fire_Train_Data <- read_csv("~/up201905966/DM1/proj/DM_2022_2023_proj/fires_train.csv")
 
 #eleminar firstInterv_hour, alert_source, parish, region, distinct e a id
-fire_Train_Data <-fire_Train_Data %>%  select(-c(firstInterv_hour, alert_source, parish, region, district ,id))
+fire_Train_Data <-fire_Train_Data %>%  
+                    select(-c(firstInterv_hour, alert_source, parish, region, district ,id))
 
 fire_Train_Data <- fire_Train_Data  %>% drop_na(alert_hour)
 
@@ -13,6 +16,32 @@ str(fire_Train_Data)
 summary(fire_Train_Data)
 fire_Train_Data
 
+#date
+
+alert_date_pull <- fire_Train_Data %>%  pull(alert_date)
+alert_hour_pull <- fire_Train_Data %>%  pull(alert_hour)
+
+#criar a coluna fire_Train_alert_week
+fire_Train_alert_week <- alert_date_pull%>% week()
+#mutate a coluna fire_Train_alert_date
+fire_Train_Data <- fire_Train_Data %>% mutate(alert_date = alert_date_pull %>% ymd_hms(),
+                                                    alert_week = fire_Train_alert_week) 
+
+#criar a coluna fire_Train_alert_hour
+fire_Train_alert_hour <- alert_hour_pull%>% hour()
+
+
+fire_Train_alert_date
+
+fire_Train_alert_week
+
+  
+
+
+
+
+
+################################################
 
 fire_Train_Data <- fire_Train_Data %>% mutate(intentional_cause=as.factor(intentional_cause),
                                     region = as.factor(region),
@@ -26,11 +55,7 @@ fire_Train_Data <- fire_Train_Data %>% mutate(alert_hour       =as.(alert_hour  
                                             firstInterv_date      =as.Date(firstInterv_date      ),
                                             firstInterv_hour       =as.Date(firstInterv_hour       ))
 
-fire_Train_Data <-fire_Train_Data %>%  select(-firstInterv_hour)
-
-
 fire_Train_Data %>% group_by(alert_hour) %>% count()
-
 
 fire_Train_Data
 
