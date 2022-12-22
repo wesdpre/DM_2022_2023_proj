@@ -44,7 +44,13 @@ coord_values <- select(fireData_Train, lat, lon, alert_date)
 
 dados <- getData_Ogi(coord_values[[1]][1], coord_values[[2]][1], coord_values[[3]][1])
 
-for(i in 2:3) {
-  dados <- rbind(dados, getData_Ogi(coord_values[[1]][i], coord_values[[2]][i], coord_values[[3]][i]))
+# NÃO SEI SE ESTÁ 100% BEM
+for(i in 2:10309) {
+  ogimet_dados <- getData_Ogi(coord_values[[1]][i], coord_values[[2]][i], coord_values[[3]][i])
+  common <- intersect(colnames(dados), colnames(dados))
+  dados <- rbind(dados[common], ogimet_dados[common])
   #save(dados, file="/home/santos/Desktop/DataMining/DataMiningProject/ogimetData/ogimetData.Rdata")
 }
+
+save(dados, file = "data.RData")
+
