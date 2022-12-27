@@ -1,0 +1,162 @@
+---
+title: "Previsão de Fogo Posto em Portugal 2014-2015"
+author: Joana Pereira (201805191), Pedro Azevedo (201905966), Pedro Santos(201904529)
+date: "01 de janeiro, 2022"
+output:
+  pdf_document:
+        fig_crop: no
+  html_document:
+    df_print: paged
+  word_document: default
+geometry: margin=2cm
+subtitle: Data Mining I - Trabalho Prático
+fontsize: 9pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<!--Justify text-->
+<style>
+body {
+text-align: justify}
+</style>
+<!--
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```
+-->
+
+
+#### 1. Introdução
+
+No ãmbito da Unidade Curricular Data Mining I, foi elaborado o relatório dinãmico usando `rmarkdown`, este visa responder a três tarefas pedidas para um _dataset_ fornecido sobre incêndios decorrido em Portugal entre 2014 e 2015. 
+
+Data mining é o processo de explorar grandes quantidades de dados à procura de padrões.
+Neste campo, através de um estudo minucioso dos dados pode prever-se _outcomes_,  é um dos objetivos principais nas tarefas de data mining. A análise preitiva é um dos campos com maior crescimento na actualidade, pois, existe uma necessidade cada vez maior de prever valores dado um conjunto de características. 
+
+Este trabalho tem como objectivo a previsão relativamente a fogo posto ou não, ouse seja, dado um conjunto de valores num data set, será possível prever se dado um conjunto de caracteríticas o fogo seria posto ou não.
+
+Para ser possível concluir o trabalho foram pedidas três tarefas:
+
+**Tarefa 1:** Compreensão e Preparação de dados
+Para ser possível esta tarefa será necessário resumir e visualizar os dados de forma a ser possível obter _insights_ sobre o conjunto de dados. Nesta tarefa, será ainda necessário verificar a necessidade de limpeza e pré-processamento de dados.
+
+**Tarefa 2:** Predictive Modelling
+Com dados previamente compreendidos e pré-processados, deve ser equacionado qual modelo de previsão usar, sendo que neste caso será para prever see o fogo seria _fogo posto_ ou não. 
+
+**Tarefa 3:** Kaggle
+Como tarefa final, deve ser colocado o presente relatório no Kaggle, cujo o nome da equipa foi Grupo 13.
+
+
+
+#### 3. Pré-processamento de dados e Análise exploratória de dados
+
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+
+fire_Train_Data <- read_csv("fires_train.csv")
+fire_Test_Data <- read_csv("fires_test.csv")
+
+```
+
+Primeiramente, deve-se importar não só o conjunto de dados (previamente já divididos em treino e teste), bem como, o import das bibliotecas necessárias. Assim, de seguida, passou-se a uma análise dos dados, com isto, foi possível perceber que ambos os conjuntos de dados precisavam de passar por um pré-processamento. 
+
+Uma das partes mais importantes é a exploração de dados. Deve-se, minuciosamente, averiguar cada caractrística do conjunto de dados fornecido. Inicialmente, pode-se verificar que _fire_Train_Data_ e _fire_Test_Data_, apresenta vinte colunas de diferentes características, das quais algumas não devem permanecer no conjunto de dados. Sendo de realçar que no _fire_Train_Data_ existe uma vigésima primeira coluna, está é a coluna final onde após o pré-processamento poder-se-á usar um modelo de previsão.
+Olhando, com cuidado para os dois conjuntos de dados, pode-se inferir que existem colunas que podem ser eliminadas e valores nulos que podem ser substituídos ou as suas linhas totalmente eliminadas.
+A coluna _id_, que apenas identifica o caso não traz valor para o conjunto de dados, assim sendo, esta deve ser eliminada. As colunas _parish_ e _district_, por representarem a freguesia e distrito, respectivamente, também foram eliminadas, pois o seu valor seria diminuto, uma vez que representam algo muito especifico, e, poderia, levar a um *_overfitting_*.
+É possível observar que temos colunas com alguns valores nulos, no entanto, a maior preocupação será a coluna _alert_source_, pois esta não tem um único dado inserido, tanto no conjunto de teste, bem como, no de treino, assim, será uma coluna a eliminar, porque não é possível povoar a mesma sem nenhum dado como base. 
+
+```{r}
+fire_Train_Data <-fire_Train_Data %>%  
+  select(-c(alert_source, parish, district, id))
+
+spec(fire_Train_Data)
+str(fire_Train_Data)
+summary(fire_Train_Data)
+fire_Train_Data
+```
+
+Deve-se, também, averiguar a quantidade de valores nulos por cada coluna, pois, é a base de uma boa limpeza de dados saber se os dados que faltam são dados que não foram guardados ou são apenas dados não existem.
+
+```{r}
+apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
+apply(X = is.na(fire_Test_Data), MARGIN = 2, FUN = sum)
+```
+
+É ainda possível verificar que a coluna _region_ apresenta poucos valores null, o que permite que estes sejam facilmente preenchidos. É apenas necessário descobrir em que linha se encontram.
+
+```{r}
+is.na(fire_Train_Data)
+which(is.na(fire_Train_Data$region))
+```
+
+Com isto, descobrimos que se encontra na linha 5275, contudo, para ser preenchido é preciso que se saiba algo da mesma como a coluna _municipality_ para que se possa averiguar qual o valor a colocar na coluna _region_.
+
+```{r}
+fire_Train_Data[5275,]
+```
+
+De onde ficou a conhecer-se que _municipality_ era "Almada", seria então necessário saber qual a _region_ associada a esta _municipality_ para que a linha 5275 fosse corretamente preenchida.
+
+```{r}
+fire_Train_Data[fire_Train_Data$municipality == "Almada",]
+```
+
+Este devolve como paramêtro "Ribatejo e Oeste", este terá de ser colocado na coluna _region_ da linha 5275.
+
+```{r}
+fire_Train_Data <- fire_Train_Data %>% mutate(region = ifelse(is.na(region), "Ribatejo e Oeste", region))
+```
+
+O mesmo será feito para `fire_Test_Data`, que tem dois valores nulos na coluna _region_ nas linhas 518 e 3987, ambas as linhas na _municipality_ de "Setúbal", cuja _region_ será "Alentejo".
+
+```{r}
+is.na(fire_Test_Data)#saber onde está na
+which(is.na(fire_Test_Data$region))#saber a linha do na
+fire_Test_Data[518,]
+fire_Test_Data[3987,]
+fire_Test_Data <- fire_Test_Data %>% mutate(region = ifelse(is.na(region), "Alentejo", region))
+```
+
+Como previamente se verificou existem ainda algumas colunas com valores nulos.
+```{r}
+apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
+```
+
+As colunas "extinction_date", "extinction_hour", "firstInterv_date" e "firstInterv_hour" apresentam 10, 10, 309 e 311 valores nulos, respectivamente. Pela avaliação pode-se concluir que seria possível alterar o conjunto de dados. Primeiramente, pensou-se em preencher os dados de "extinction_date", "extinction_hour", pois sendo apenas 10, ao preencher com média ou com valores vizinhos manter-se-ia a coerência do conjunto de dados, contudo, as outras duas colunas ao eliminar os seus valores nulos iriam apagar as mesmas linhas, assim, não foram preenchidas as colunas "extinction_date", "extinction_hour" mas sim, eliminadas 312 linhas no total, ou seja, menos 3% do conjunto de dados de _fire_Train_Data_, sendo um valor tão baixo perspectiva-se quee não afectaria muito, assim, prosseguiu-se com a eliminação dessas mesmas linhas. E, garantindo o conjunto de dados de _fire_Train_Data_ sem valores nulos.
+
+```{r}
+y = c("extinction_hour", "firstInterv_date", "firstInterv_hour")
+vars <- "y"
+fire_Train_Data <- drop_na(fire_Train_Data, any_of(y))
+#fire_Train_Data <- drop_na(fire_Train_Data, "firstInterv_date")
+#fire_Train_Data <- drop_na(fire_Train_Data, "extinction_hour") 
+apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
+```
+
+Procedeu-se ao mesmo tratamento para _fire_Test_Data_. Neste conjunto de dados as colunas "extinction_date", "extinction_hour", "firstInterv_date" e "firstInterv_hour" apresentam 5, 5, 132 e 132 valores nulos, respectivamente. 
+```{r}
+apply(X = is.na(fire_Test_Data), MARGIN = 2, FUN = sum)
+```
+
+Pela mesma razão anterior, as duas primeiras colunas não foram preenchidas com valores aproximados, pois as duas colunas "firstInterv_date" e "firstInterv_hour" quando eliminas as linhas com valores nulos, também eliminam as linhas de valores nulos de 
+"extinction_date" e "extinction_hour". Inicialmente, este conjunto de dados tem 4416 linhas e após este pré-processamento apresenta menos 133 linhas, o que corresponde a menos 3%, tal como no caso anterior, não sendo muito e podendo então se prosseguir com o conjunto de dados, agora sem valores nulos.
+
+```{r}
+y = c("extinction_hour", "firstInterv_date", "firstInterv_hour")
+vars <- "y"
+fire_Test_Data <- drop_na(fire_Test_Data, any_of(y))
+apply(X = is.na(fire_Test_Data), MARGIN = 2, FUN = sum)
+summary(fire_Test_Data)
+```
+
+
+
+
+
+
