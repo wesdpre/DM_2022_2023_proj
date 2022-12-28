@@ -21,7 +21,7 @@ apply(X = is.na(fire_Test_Data), MARGIN = 2, FUN = sum)
 #  select(-c(alert_source, parish, district, id))
 
 fire_Test_Data <-fire_Test_Data %>%  
-  select(-c(alert_source, parish, district, id))
+  select(-c(alert_source, parish, district))
 
 #REGION Só tem um pu dois na pode ser preenchido
 #is.na(fire_Train_Data)#saber onde está na
