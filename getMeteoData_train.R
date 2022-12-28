@@ -70,31 +70,18 @@ for(i in 2:nrow(fire_Train_Data)) {
 }
 save(train_data, file="Rdata/ogimetData_train.Rdata")
 
-# verificar quantos NAs os atributos não numéricos têm
-for(j in 1:19) {
-  counter = 0
-  for(i in 1:nrow(train_data)) {
-    if(is.na(train_data[[j]][i])) {
-      counter = counter + 1
-    } 
-  }
-  print(c("NAs de ", j, counter))
-}
-
 #remover colunas que têm demasiados NA's (> 10% do conjunto de dados)
-ogi_data <- train_data[, -c(1,2,10,12,13,14,16,17,18)]
+train_data_NA <- merge(fire_Train_Data, train_data[, -c(1,2,10,12,13,14,16,17,18)], by = c("id"))
 
-train_data_NA <- merge(fire_Train_Data, ogi_data, by = c("id"))
+#train_data_NA$WindkmhDir <- c('N'=1,'NNE'=2,'NE'=3,'ENE' =4,'E'=5,'ESE'=6,'SE'=7,'SSE'=8,'S'=9,'SSW'=10,'SW'=11,'WSW'=12,'W'=13,'WNW'=14,'NW'= 15,'NNW'=16)[train_data_NA$WindkmhDir]
 
-summary(train_data_NA)
-
-dataset_train <- train_data_NA[, -c(27,28)]
+#remover outras colunas problemáticas
+dataset_train <- train_data_NA[, -c(22,24,26,27)]
 
 # conjunto de dados com NAs 
 save(dataset_train, file="Rdata/Train_Data_na.Rdata")
 
-y1 = c("TemperatureCAvg", "TemperatureCMax", "TemperatureCMin","TdAvgC","HrAvg","WindkmhDir","WindkmhInt","PresslevHp")
-train_data_noNAs <- drop_na(dataset_train, any_of(y1))
+train_data_noNAs <- drop_na(dataset_train, any_of(c("TemperatureCAvg", "TemperatureCMax", "TemperatureCMin","HrAvg","WindkmhInt")))
 
 save(train_data_noNAs, file="Rdata/Train_Data_noNa.Rdata")
-# das 9997 observações iniciais obtemos 9288 observações resultando numa perda de 7% das observações
+# das 9997 observações iniciais obtemos 9074 observações resultando numa perda de 9.2% das observações
