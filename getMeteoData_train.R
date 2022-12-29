@@ -71,17 +71,37 @@ for(i in 2:nrow(fire_Train_Data)) {
 save(train_data, file="Rdata/ogimetData_train.Rdata")
 
 #remover colunas que têm demasiados NA's (> 10% do conjunto de dados)
-train_data_NA <- merge(fire_Train_Data, train_data[, -c(1,2,10,12,13,14,16,17,18)], by = c("id"))
+train_data <- train_data %>% select(-c(station_ID,Date,WindkmhGust,Precmm,TotClOct,lowClOct,VisKm,PreselevHp,SnowDepcm,TdAvgC,WindkmhDir,PresslevHp,SunD1h))
+train_data_NA <- merge(fire_Train_Data, train_data, by = c("id"))
 
-#train_data_NA$WindkmhDir <- c('N'=1,'NNE'=2,'NE'=3,'ENE' =4,'E'=5,'ESE'=6,'SE'=7,'SSE'=8,'S'=9,'SSW'=10,'SW'=11,'WSW'=12,'W'=13,'WNW'=14,'NW'= 15,'NNW'=16)[train_data_NA$WindkmhDir]
+# Alterar os valores da variável origin de categóricos para numéricos
+train_data_NA$origin <- c('fire'=1,'firepit'=2,'agriculture'=3,'agric_burn' =4,'false_alarm'=5)[train_data_NA$origin]
 
-#remover outras colunas problemáticas
-dataset_train <- train_data_NA[, -c(22,24,26,27)]
+# Dividir o dia em 4 partes cada uma com 6 horas (1h - 6:59 -> 1 parte, 7h - 12:59 -> 2 parte, 13h - 18:59 -> 3 parte, 19h - 00h59 -> 4 parte)
+# Alert hour
+train_data_NA$alert_hour <- hour(train_data_NA$alert_hour)
+train_data_NA$alert_hour <- ifelse(train_data_NA$alert_hour <= 6 & train_data_NA$alert_hour > 0, 1, ifelse(train_data_NA$alert_hour <= 12 & train_data_NA$alert_hour > 6, 2, ifelse(train_data_NA$alert_hour <= 18 & train_data_NA$alert_hour > 12, 3, 4)))
+
+# First Intervation hour
+train_data_NA$firstInterv_hour <- hour(train_data_NA$firstInterv_hour)
+train_data_NA$firstInterv_hour <- ifelse(train_data_NA$firstInterv_hour <= 6 & train_data_NA$firstInterv_hour > 0, 1, ifelse(train_data_NA$firstInterv_hour <= 12 & train_data_NA$firstInterv_hour > 6, 2, ifelse(train_data_NA$firstInterv_hour <= 18 & train_data_NA$firstInterv_hour > 12, 3, 4)))
+
+# Extinction hour
+train_data_NA$extinction_hour <- hour(train_data_NA$extinction_hour)
+train_data_NA$extinction_hour <- ifelse(train_data_NA$extinction_hour <= 6 & train_data_NA$extinction_hour > 0, 1, ifelse(train_data_NA$extinction_hour <= 12 & train_data_NA$extinction_hour > 6, 2, ifelse(train_data_NA$extinction_hour <= 18 & train_data_NA$extinction_hour > 12, 3, 4)))
+
+# Alterar data para o formato [year].[quarter]
+train_data_NA$alert_date <- quarter(date(train_data_NA$alert_date), with_year = TRUE)
+train_data_NA$firstInterv_date <- quarter(date(train_data_NA$firstInterv_date), with_year = TRUE)
+train_data_NA$extinction_date <- quarter(date(train_data_NA$extinction_date), with_year = TRUE)
+
+#remover outras colunas
+dataset_train <- train_data_NA %>% select(-c(id,region,lon,lat))
 
 # conjunto de dados com NAs 
 save(dataset_train, file="Rdata/Train_Data_na.Rdata")
 
-train_data_noNAs <- drop_na(dataset_train, any_of(c("TemperatureCAvg", "TemperatureCMax", "TemperatureCMin","HrAvg","WindkmhInt")))
+train_data_noNAs <- drop_na(dataset_train, any_of(c(colnames(train_data)[colnames(train_data) != "id"])))
 
 save(train_data_noNAs, file="Rdata/Train_Data_noNa.Rdata")
-# das 9997 observações iniciais obtemos 9074 observações resultando numa perda de 9.2% das observações
+cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Train_Data) - nrow(train_data_noNAs)) / nrow(fire_Train_Data) * 100), '%')

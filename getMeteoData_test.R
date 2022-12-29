@@ -67,17 +67,37 @@ for(i in 2:nrow(fire_Test_Data)) {
 save(test_data, file="Rdata/ogimetData_test.Rdata")
 
 #remover colunas que têm demasiados NA's (> 10% do conjunto de dados)
-test_data_NA <- merge(fire_Test_Data, test_data[, -c(1,2,8,10,15,17,18)], by = c("id"))
+test_data <- test_data %>% select(-c(station_ID,Date,TotClOct,SunD1h,WindkmhGust,Precmm,SnowDepcm,WindkmhDir,PreselevHp,lowClOct,VisKm,TdAvgC,PresslevHp))
+test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"))
 
-#test_data_NA$WindkmhDir <- c('N'=1,'NNE'=2,'NE'=3,'ENE' =4,'E'=5,'ESE'=6,'SE'=7,'SSE'=8,'S'=9,'SSW'=10,'SW'=11,'WSW'=12,'W'=13,'WNW'=14,'NW'= 15,'NNW'=16)[test_data_NA$WindkmhDir]
+# Alterar os valores da variável origin de categóricos para numéricos
+test_data_NA$origin <- c('fire'=1,'firepit'=2,'agriculture'=3,'agric_burn' =4,'false_alarm'=5)[test_data_NA$origin]
 
-#remover outras colunas problemáticas
-dataset_test <- test_data_NA[, -c(20,22,23,24,27,28)]
+# Dividir o dia em 4 partes cada uma com 6 horas (1h - 6:59 -> 1 parte, 7h - 12:59 -> 2 parte, 13h - 18:59 -> 3 parte, 19h - 00h59 -> 4 parte)
+# Alert hour
+test_data_NA$alert_hour <- hour(test_data_NA$alert_hour)
+test_data_NA$alert_hour <- ifelse(test_data_NA$alert_hour <= 6 & test_data_NA$alert_hour > 0, 1, ifelse(test_data_NA$alert_hour <= 12 & test_data_NA$alert_hour > 6, 2, ifelse(test_data_NA$alert_hour <= 18 & test_data_NA$alert_hour > 12, 3, 4)))
+
+# First Intervation hour
+test_data_NA$firstInterv_hour <- hour(test_data_NA$firstInterv_hour)
+test_data_NA$firstInterv_hour <- ifelse(test_data_NA$firstInterv_hour <= 6 & test_data_NA$firstInterv_hour > 0, 1, ifelse(test_data_NA$firstInterv_hour <= 12 & test_data_NA$firstInterv_hour > 6, 2, ifelse(test_data_NA$firstInterv_hour <= 18 & test_data_NA$firstInterv_hour > 12, 3, 4)))
+
+# Extinction hour
+test_data_NA$extinction_hour <- hour(test_data_NA$extinction_hour)
+test_data_NA$extinction_hour <- ifelse(test_data_NA$extinction_hour <= 6 & test_data_NA$extinction_hour > 0, 1, ifelse(test_data_NA$extinction_hour <= 12 & test_data_NA$extinction_hour > 6, 2, ifelse(test_data_NA$extinction_hour <= 18 & test_data_NA$extinction_hour > 12, 3, 4)))
+
+# Alterar data para o formato [year].[quarter]
+test_data_NA$alert_date <- quarter(date(test_data_NA$alert_date), with_year = TRUE)
+test_data_NA$firstInterv_date <- quarter(date(test_data_NA$firstInterv_date), with_year = TRUE)
+test_data_NA$extinction_date <- quarter(date(test_data_NA$extinction_date), with_year = TRUE)
+
+#remover outras colunas 
+dataset_test <- test_data_NA %>% select(-c(id,region,lon,lat))
 
 # conjunto de dados com NAs 
 save(dataset_test, file="Rdata/Test_Data_na.Rdata")
 
-test_data_noNAs <- drop_na(dataset_test, any_of(c("TemperatureCAvg","HrAvg","WindkmhInt","TemperatureCMax","TemperatureCMin")))
+test_data_noNAs <- drop_na(dataset_test, any_of(c(colnames(test_data)[colnames(test_data) != "id"])))
 
 save(test_data_noNAs, file="Rdata/Test_Data_noNa.Rdata")
-# das 4283 observações iniciais obtemos 3901 observações resultando numa perda de 8.91% das observações
+cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Test_Data) - nrow(test_data_noNAs)) / nrow(fire_Test_Data) * 100), '%')
