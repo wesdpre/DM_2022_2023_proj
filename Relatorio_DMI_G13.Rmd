@@ -11,6 +11,9 @@ output:
 geometry: margin=2cm
 subtitle: Data Mining I - Trabalho Prático
 fontsize: 9pt
+editor_options: 
+  markdown: 
+    wrap: sentence
 ---
 
 ```{r setup, include=FALSE}
@@ -18,41 +21,41 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 <!--Justify text-->
+
+```{=html}
 <style>
 body {
 text-align: justify}
 </style>
+```
+````{=html}
 <!--
 ```{r, include=FALSE}
 options(tinytex.verbose = TRUE)
 ```
 -->
-
+````
 
 #### 1. Introdução
 
-No ãmbito da Unidade Curricular Data Mining I, foi elaborado o relatório dinãmico usando `rmarkdown`, este visa responder a três tarefas pedidas para um _dataset_ fornecido sobre incêndios decorrido em Portugal entre 2014 e 2015. 
+No ambito da Unidade Curricular Data Mining I, foi elaborado o relatório dinãmico usando `rmarkdown`, este visa responder a três tarefas pedidas para um *dataset* fornecido sobre incêndios decorrido em Portugal entre 2014 e 2015.
 
 Data mining é o processo de explorar grandes quantidades de dados à procura de padrões.
-Neste campo, através de um estudo minucioso dos dados pode prever-se _outcomes_,  é um dos objetivos principais nas tarefas de data mining. A análise preitiva é um dos campos com maior crescimento na actualidade, pois, existe uma necessidade cada vez maior de prever valores dado um conjunto de características. 
+Neste campo, através de um estudo minucioso dos dados pode prever-se *outcomes*, é um dos objetivos principais nas tarefas de data mining.
+A análise preitiva é um dos campos com maior crescimento na actualidade, pois, existe uma necessidade cada vez maior de prever valores dado um conjunto de características.
 
 Este trabalho tem como objectivo a previsão relativamente a fogo posto ou não, ouse seja, dado um conjunto de valores num data set, será possível prever se dado um conjunto de caracteríticas o fogo seria posto ou não.
 
 Para ser possível concluir o trabalho foram pedidas três tarefas:
 
-**Tarefa 1:** Compreensão e Preparação de dados
-Para ser possível esta tarefa será necessário resumir e visualizar os dados de forma a ser possível obter _insights_ sobre o conjunto de dados. Nesta tarefa, será ainda necessário verificar a necessidade de limpeza e pré-processamento de dados.
+**Tarefa 1:** Compreensão e Preparação de dados Para ser possível esta tarefa será necessário resumir e visualizar os dados de forma a ser possível obter *insights* sobre o conjunto de dados.
+Nesta tarefa, será ainda necessário verificar a necessidade de limpeza e pré-processamento de dados.
 
-**Tarefa 2:** Predictive Modelling
-Com dados previamente compreendidos e pré-processados, deve ser equacionado qual modelo de previsão usar, sendo que neste caso será para prever see o fogo seria _fogo posto_ ou não. 
+**Tarefa 2:** Predictive Modelling Com dados previamente compreendidos e pré-processados, deve ser equacionado qual modelo de previsão usar, sendo que neste caso será para prever see o fogo seria *fogo posto* ou não.
 
-**Tarefa 3:** Kaggle
-Como tarefa final, deve ser colocado o presente relatório no Kaggle, cujo o nome da equipa foi Grupo 13.
-
-
+**Tarefa 3:** Kaggle Como tarefa final, deve ser colocado o presente relatório no Kaggle, cujo o nome da equipa foi Grupo 13.
 
 #### 3. Pré-processamento de dados e Análise exploratória de dados
-
 
 ```{r}
 library(tidyverse)
@@ -60,20 +63,22 @@ library(lubridate)
 library(dplyr)
 
 fire_Train_Data <- read_csv("fires_train.csv")
-fire_Test_Data <- read_csv("fires_test.csv")
-
 ```
 
-Primeiramente, deve-se importar não só o conjunto de dados (previamente já divididos em treino e teste), bem como, o import das bibliotecas necessárias. Assim, de seguida, passou-se a uma análise dos dados, com isto, foi possível perceber que ambos os conjuntos de dados precisavam de passar por um pré-processamento. 
+Primeiramente, deve-se importar não só o conjunto de dados (previamente já divididos em treino e teste), bem como, importar as bibliotecas necessárias.
+Seguiu-se a uma análise dos dados, com isto, foi possível perceber que ambos os conjuntos de dados precisavam de passar por um pré-processamento.
 
-Uma das partes mais importantes é a exploração de dados. Deve-se, minuciosamente, averiguar cada caractrística do conjunto de dados fornecido. Inicialmente, pode-se verificar que _fire_Train_Data_ e _fire_Test_Data_, apresenta vinte colunas de diferentes características, das quais algumas não devem permanecer no conjunto de dados. Sendo de realçar que no _fire_Train_Data_ existe uma vigésima primeira coluna, está é a coluna final onde após o pré-processamento poder-se-á usar um modelo de previsão.
+Uma das partes mais importantes é a exploração de dados.
+Deve-se, minuciosamente, averiguar cada característica do conjunto de dados fornecido.
+Inicialmente, pode-se verificar que *fire_Train_Data*, apresenta vinte colunas de diferentes características, das quais algumas não devem permanecer no conjunto de dados.
+Sendo de realçar que no *fire_Train_Data* existe uma vigésima primeira coluna, está é a coluna final onde após o pré-processamento poder-se-à usar um modelo de previsão.
 Olhando, com cuidado para os dois conjuntos de dados, pode-se inferir que existem colunas que podem ser eliminadas e valores nulos que podem ser substituídos ou as suas linhas totalmente eliminadas.
-A coluna _id_, que apenas identifica o caso não traz valor para o conjunto de dados, assim sendo, esta deve ser eliminada. As colunas _parish_ e _district_, por representarem a freguesia e distrito, respectivamente, também foram eliminadas, pois o seu valor seria diminuto, uma vez que representam algo muito especifico, e, poderia, levar a um *_overfitting_*.
-É possível observar que temos colunas com alguns valores nulos, no entanto, a maior preocupação será a coluna _alert_source_, pois esta não tem um único dado inserido, tanto no conjunto de teste, bem como, no de treino, assim, será uma coluna a eliminar, porque não é possível povoar a mesma sem nenhum dado como base. 
+As colunas *parish* e *district*, por representarem a freguesia e distrito, respectivamente, também foram eliminadas, pois o seu valor seria diminuto, uma vez que representam algo muito específico, e, poderia, levar a um *overfitting*.
+É possível observar que temos colunas com alguns valores nulos, no entanto, a maior preocupação será a coluna *alert_source*, pois esta não tem um único dado inserido, tanto no conjunto de teste, bem como, no de treino, assim, será uma coluna a eliminar, porque não é possível povoar a mesma sem nenhum dado como base.
 
 ```{r}
 fire_Train_Data <-fire_Train_Data %>%  
-  select(-c(alert_source, parish, district, id))
+  select(-c(alert_source, parish, district))
 
 spec(fire_Train_Data)
 str(fire_Train_Data)
@@ -85,78 +90,421 @@ Deve-se, também, averiguar a quantidade de valores nulos por cada coluna, pois,
 
 ```{r}
 apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
-apply(X = is.na(fire_Test_Data), MARGIN = 2, FUN = sum)
 ```
 
-É ainda possível verificar que a coluna _region_ apresenta poucos valores null, o que permite que estes sejam facilmente preenchidos. É apenas necessário descobrir em que linha se encontram.
+É ainda possível verificar que a coluna *region* apresenta poucos valores null, o que permite que estes sejam facilmente preenchidos.
+É apenas necessário descobrir em que linha se encontram.
 
 ```{r}
 is.na(fire_Train_Data)
 which(is.na(fire_Train_Data$region))
 ```
 
-Com isto, descobrimos que se encontra na linha 5275, contudo, para ser preenchido é preciso que se saiba algo da mesma como a coluna _municipality_ para que se possa averiguar qual o valor a colocar na coluna _region_.
+Com isto, descobrimos que se encontra na linha 5275, contudo, para ser preenchido é preciso que se saiba algo da mesma como a coluna *municipality* para que se possa averiguar qual o valor a colocar na coluna *region*.
 
 ```{r}
 fire_Train_Data[5275,]
 ```
 
-De onde ficou a conhecer-se que _municipality_ era "Almada", seria então necessário saber qual a _region_ associada a esta _municipality_ para que a linha 5275 fosse corretamente preenchida.
+De onde ficou a conhecer-se que *municipality* era "Almada", seria então necessário saber qual a *region* associada a esta *municipality* para que a linha 5275 fosse corretamente preenchida.
 
 ```{r}
 fire_Train_Data[fire_Train_Data$municipality == "Almada",]
 ```
 
-Este devolve como paramêtro "Ribatejo e Oeste", este terá de ser colocado na coluna _region_ da linha 5275.
+Este devolve como paramêtro "Ribatejo e Oeste", este terá de ser colocado na coluna *region* da linha 5275.
 
 ```{r}
 fire_Train_Data <- fire_Train_Data %>% mutate(region = ifelse(is.na(region), "Ribatejo e Oeste", region))
 ```
 
-O mesmo será feito para `fire_Test_Data`, que tem dois valores nulos na coluna _region_ nas linhas 518 e 3987, ambas as linhas na _municipality_ de "Setúbal", cuja _region_ será "Alentejo".
+Contudo, como, previamente, se verificou existem ainda existem algumas colunas com valores nulos.
 
-```{r}
-is.na(fire_Test_Data)#saber onde está na
-which(is.na(fire_Test_Data$region))#saber a linha do na
-fire_Test_Data[518,]
-fire_Test_Data[3987,]
-fire_Test_Data <- fire_Test_Data %>% mutate(region = ifelse(is.na(region), "Alentejo", region))
-```
-
-Como previamente se verificou existem ainda algumas colunas com valores nulos.
 ```{r}
 apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
 ```
 
-As colunas "extinction_date", "extinction_hour", "firstInterv_date" e "firstInterv_hour" apresentam 10, 10, 309 e 311 valores nulos, respectivamente. Pela avaliação pode-se concluir que seria possível alterar o conjunto de dados. Primeiramente, pensou-se em preencher os dados de "extinction_date", "extinction_hour", pois sendo apenas 10, ao preencher com média ou com valores vizinhos manter-se-ia a coerência do conjunto de dados, contudo, as outras duas colunas ao eliminar os seus valores nulos iriam apagar as mesmas linhas, assim, não foram preenchidas as colunas "extinction_date", "extinction_hour" mas sim, eliminadas 312 linhas no total, ou seja, menos 3% do conjunto de dados de _fire_Train_Data_, sendo um valor tão baixo perspectiva-se quee não afectaria muito, assim, prosseguiu-se com a eliminação dessas mesmas linhas. E, garantindo o conjunto de dados de _fire_Train_Data_ sem valores nulos.
+As colunas "extinction_date", "extinction_hour", "firstInterv_date" e "firstInterv_hour" apresentam 10, 10, 309 e 311 valores nulos, respectivamente.
+Pela avaliação pode-se concluir que seria possível alterar o conjunto de dados.
+Primeiramente, pensou-se em preencher os dados de "extinction_date", "extinction_hour", pois sendo apenas 10, ao preencher com média ou com valores vizinhos manter-se-ia a coerência do conjunto de dados, contudo, as outras duas colunas ao eliminar os seus valores nulos iriam apagar as mesmas linhas, assim, não foram preenchidas as colunas "extinction_date", "extinction_hour" mas sim, eliminadas 312 linhas no total, ou seja, menos 3% do conjunto de dados de *fire_Train_Data*, sendo um valor tão baixo perspectiva-se quee não afectaria muito, assim, prosseguiu-se com a eliminação dessas mesmas linhas.
+E, garantindo o conjunto de dados de *fire_Train_Data* sem valores nulos.
 
 ```{r}
 y = c("extinction_hour", "firstInterv_date", "firstInterv_hour")
 vars <- "y"
 fire_Train_Data <- drop_na(fire_Train_Data, any_of(y))
-#fire_Train_Data <- drop_na(fire_Train_Data, "firstInterv_date")
-#fire_Train_Data <- drop_na(fire_Train_Data, "extinction_hour") 
 apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
 ```
 
-Procedeu-se ao mesmo tratamento para _fire_Test_Data_. Neste conjunto de dados as colunas "extinction_date", "extinction_hour", "firstInterv_date" e "firstInterv_hour" apresentam 5, 5, 132 e 132 valores nulos, respectivamente. 
-```{r}
-apply(X = is.na(fire_Test_Data), MARGIN = 2, FUN = sum)
-```
-
-Pela mesma razão anterior, as duas primeiras colunas não foram preenchidas com valores aproximados, pois as duas colunas "firstInterv_date" e "firstInterv_hour" quando eliminas as linhas com valores nulos, também eliminam as linhas de valores nulos de 
-"extinction_date" e "extinction_hour". Inicialmente, este conjunto de dados tem 4416 linhas e após este pré-processamento apresenta menos 133 linhas, o que corresponde a menos 3%, tal como no caso anterior, não sendo muito e podendo então se prosseguir com o conjunto de dados, agora sem valores nulos.
+Com este conjunto de dados foi possível, apenas, fazer o pré-processamento dos dados já fornecidos.
+Contudo, para que o modelo fosse treinado com mais dados, por sugestão da docente, usou-se um pacote disponível no Github, *bczernecki/climate*, cujo objetivo do pacote Climate R é automatizar o download de dados meteorológicos e hidrológicos in-situ de repositórios disponíveis publicamente.
+Desta forma, para cada dia e localização disponíveis no conjunto de dados principal foi possível anexar mais um conjunto de características tanto ao conjunto *fire_Test_Data*, bem como, ao *fire_Test_Data*.
 
 ```{r}
-y = c("extinction_hour", "firstInterv_date", "firstInterv_hour")
-vars <- "y"
-fire_Test_Data <- drop_na(fire_Test_Data, any_of(y))
-apply(X = is.na(fire_Test_Data), MARGIN = 2, FUN = sum)
-summary(fire_Test_Data)
+library(remotes)
+install_github("bczernecki/climate")
+library(climate)
+library(lubridate)
+library(measurements)
+library(tidyverse)
+
+coordinates <- function(coordinate_string) {
+  flag = 0
+  if(grepl(':',coordinate_string)) {
+    splited <- unlist(strsplit(coordinate_string, split=':'))
+  } else {
+    flag = 1
+    splited <- unlist(strsplit(coordinate_string, split='º'))
+    splited <- unlist(strsplit(splited, split="'"))
+  }
+  
+  if(c(splited)[1] == "00") {
+    flag = 2
+  }
+  
+  print(flag)
+  if(flag == 2) {
+    splited2 <- unlist(strsplit(c(splited)[3], split="\\."))
+    dms <- paste(c((splited)[2], (splited2)[1], (splited2)[2]), collapse = " ")
+    coord <- conv_unit(dms, from = "deg_min_sec", to = "dec_deg")
+  }else if(flag == 1) {
+    dms <- paste(c((splited)[1], (splited)[2], (splited)[3]), collapse = " ")
+    coord <- conv_unit(dms, from = "deg_min_sec", to = "dec_deg") 
+  } else if(flag == 0) {
+    splited3 <- unlist(strsplit(c(splited)[3], split="'"))
+    dms <- paste(c((splited)[1], (splited)[2], (splited3)[1], collapse = " "))
+    coord <- conv_unit(dms, from = "deg_min_sec", to = "dec_deg") 
+  }
+  print(c(coord[1]))
+  return (c(coord[1]))
+}
+
+getData_Ogi <-function(lati, long, date) {
+  # get the nearest station
+  # be aware that the nearest station can change over time as new stations can appear
+  nearest_station <- nearest_stations_ogimet(country = "Portugal", 
+                                             date= ymd(date(date)),
+                                             point = c(long, lati),
+                                             add_map = FALSE, 
+                                             no_of_stations = 1) 
+  
+  # scrap meteorological data from Ogimet regarding a period and a specific station
+  meteo_data <- meteo_ogimet(date=date,interval="daily", station=nearest_station$wmo_id)
+  return(meteo_data)
+}
+
+coord_values <- select(fire_Train_Data, lat, lon, alert_date)
+train_data <- getData_Ogi(coord_values[[1]][1], coord_values[[2]][1], coord_values[[3]][1])
+train_data$id <- c(fire_Train_Data[[1]][1])
+count = 0
+for(i in 2:nrow(fire_Train_Data)) {
+  cat(i)
+  latitude <- coordinates(coord_values[[1]][i])
+  longitude <- paste("-", coordinates(coord_values[[2]][i]), sep="")
+  
+  ogimet_dados <- getData_Ogi(latitude, longitude, coord_values[[3]][i])
+  if(length(nrow(ogimet_dados)) == 0 || nrow(ogimet_dados) != 0) {
+    ogimet_dados$id = c(fire_Train_Data[[1]][i])
+    #ogimet_dados <- ogimet_dados %>% add_column(id = c(fire_Train_Data[[1]][i]))
+    train_data <- rbind(train_data[colnames(train_data)], ogimet_dados[colnames(train_data)])
+  } else {
+    count = count + 1
+  }
+}
+save(train_data, file="Rdata/ogimetData_train.Rdata")
 ```
 
+Assim, mediante a localização e dia foi criado um novo conjunto de dados *ogimetData_train.Rdata*, sendo que se a localização não for a mesma, é feita a procura pelo posto de meteorologia mais próximo.
+
+Verificou-se que existiam colunas com muitos valores nulos, decidiu-se, desta forma, eliminar as mesmas.
+
+```{r}
+#para dar load e não correr sempre ogimet
+load(file="Rdata/ogimetData_train.Rdata")
+
+#remover colunas que têm demasiados NA's (> 10% do conjunto de dados)
+train_data <- train_data %>% select(-c(station_ID,Date,WindkmhGust,Precmm,TotClOct,lowClOct,VisKm,PreselevHp,SnowDepcm,TdAvgC,WindkmhDir,PresslevHp,SunD1h))
+train_data_NA <- merge(fire_Train_Data, train_data, by = c("id"))
+```
+
+Com os dados obtidos, foi criada uma nova coluna "fire_duration", cujo valor remete para a duração do incêndio.
+
+```{r}
+# calcular duração do incêndio
+train_data_NA$fire_duration <- as.numeric(difftime(as_datetime(paste(date(train_data_NA$extinction_date), train_data_NA$extinction_hour)), as_datetime(paste(date(train_data_NA$alert_date), train_data_NA$alert_hour)), units = "mins"))
+train_data_NA$fire_duration <- ifelse(train_data_NA$fire_duration < 0, 0, train_data_NA$fire_duration) 
+```
+
+Por existir demasiadas colunas com valores categóricos, estes foram traduzidos para numéricos, como foi o caso da coluna "origin".
+Para ser de mais fácil leitura também se dividiu o dia em quatro partes (1h - 6:59 -\> 1 parte, 7h - 12:59 -\> 2 parte, 13h - 18:59 -\> 3 parte, 19h - 00h59 -\> 4 parte) e as datas passaram a ser visualizadas como ano e quarter do ano.
+
+```{r}
+# Alterar os valores da variável origin de categóricos para numéricos
+train_data_NA$origin <- c('fire'=1,'firepit'=2,'agriculture'=3,'agric_burn' =4,'false_alarm'=5)[train_data_NA$origin]
+
+# Dividir o dia em 4 partes cada uma com 6 horas (1h - 6:59 -> 1 parte, 7h - 12:59 -> 2 parte, 13h - 18:59 -> 3 parte, 19h - 00h59 -> 4 parte)
+# Alert hour
+train_data_NA$alert_hour <- hour(train_data_NA$alert_hour)
+train_data_NA$alert_hour <- ifelse(train_data_NA$alert_hour <= 6 & train_data_NA$alert_hour > 0, 1, ifelse(train_data_NA$alert_hour <= 12 & train_data_NA$alert_hour > 6, 2, ifelse(train_data_NA$alert_hour <= 18 & train_data_NA$alert_hour > 12, 3, 4)))
+
+# First Intervation hour
+train_data_NA$firstInterv_hour <- hour(train_data_NA$firstInterv_hour)
+train_data_NA$firstInterv_hour <- ifelse(train_data_NA$firstInterv_hour <= 6 & train_data_NA$firstInterv_hour > 0, 1, ifelse(train_data_NA$firstInterv_hour <= 12 & train_data_NA$firstInterv_hour > 6, 2, ifelse(train_data_NA$firstInterv_hour <= 18 & train_data_NA$firstInterv_hour > 12, 3, 4)))
+
+# Extinction hour
+train_data_NA$extinction_hour <- hour(train_data_NA$extinction_hour)
+train_data_NA$extinction_hour <- ifelse(train_data_NA$extinction_hour <= 6 & train_data_NA$extinction_hour > 0, 1, ifelse(train_data_NA$extinction_hour <= 12 & train_data_NA$extinction_hour > 6, 2, ifelse(train_data_NA$extinction_hour <= 18 & train_data_NA$extinction_hour > 12, 3, 4)))
+
+# Alterar data para o formato [year].[quarter]
+train_data_NA$alert_date <- quarter(date(train_data_NA$alert_date), with_year = TRUE)
+train_data_NA$firstInterv_date <- quarter(date(train_data_NA$firstInterv_date), with_year = TRUE)
+train_data_NA$extinction_date <- quarter(date(train_data_NA$extinction_date), with_year = TRUE)
+```
+
+A coluna *id* foi eliminada pois apenas identifica o caso não traz valor para o conjunto de dados, assim sendo, esta deve ser eliminada.
+Bem como, as colunas *lon* e *lat* já não acrescentariam valor, assim, também foram eliminadas. A coluna *region* foi também eliminada pois apresentava 1216 valores com o caracter "-". 
+Mudou-se ainda a posição da coluna "intentional_cause" para o final, pois está será usada para o treino do modelo.
+No entanto, algumas das colunas ainda apresentavam alguns valores nulos, tendo em conta que preencher os valores nulos com médias ou vizinhos podia tornar o conjunto tendencioso, avaliou-se o peso de apagar essas linhas, e, das 9997 observações obtemos 9074 observações resultando numa perda de cerca de 9.02% das observações, este novo conjunto foi guardado com o nome *Train_Data_noNa.Rdata* e *Train_Data_noNa.rds*.
+
+```{r}
+#remover outras colunas
+dataset_train <- train_data_NA %>% select(-c(id,lon,lat,region))
+
+# conjunto de dados com NAs 
+save(dataset_train, file="Rdata/Train_Data_na.Rdata")
+
+train_data_noNAs <- drop_na(dataset_train, any_of(c(colnames(train_data)[colnames(train_data) != "id"])))
+
+#recolocou-se a coluna intentional_cause no fim uma vez que é o output
+train_data_noNAs <- train_data_noNAs %>% relocate(intentional_cause, .after=fire_duration)
+
+save(train_data_noNAs, file="Rdata/Train_Data_noNa.Rdata")
+saveRDS(train_data_noNAs, "Rdata/Train_Data_noNa.rds")
+cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Train_Data) - nrow(train_data_noNAs)) / nrow(fire_Train_Data) * 100), '%')
+```
+
+Para o conjunto *fire_Test_Data*, procedeu-se da mesma forma, sendo que, apenas não se recolocou nenhuma coluna.
+
+```{r}
+library(remotes)
+install_github("bczernecki/climate")
+library(climate)
+library(lubridate)
+library(measurements)
+library(tidyverse)
+
+coordinates <- function(coordinate_string) {
+  flag = 0
+  if(grepl(':',coordinate_string)) {
+    splited <- unlist(strsplit(coordinate_string, split=':'))
+  } else {
+    flag = 1
+    splited <- unlist(strsplit(coordinate_string, split='º'))
+    splited <- unlist(strsplit(splited, split="'"))
+  }
+  
+  if(c(splited)[1] == "00") {
+    flag = 2
+  }
+
+  if(flag == 2) {
+    splited2 <- unlist(strsplit(c(splited)[3], split="\\."))
+    dms <- paste(c((splited)[2], (splited2)[1], (splited2)[2]), collapse = " ")
+    coord <- conv_unit(dms, from = "deg_min_sec", to = "dec_deg")
+  }else if(flag == 1) {
+    dms <- paste(c((splited)[1], (splited)[2], (splited)[3]), collapse = " ")
+    coord <- conv_unit(dms, from = "deg_min_sec", to = "dec_deg") 
+  } else if(flag == 0) {
+    splited3 <- unlist(strsplit(c(splited)[3], split="'"))
+    dms <- paste(c((splited)[1], (splited)[2], (splited3)[1], collapse = " "))
+    coord <- conv_unit(dms, from = "deg_min_sec", to = "dec_deg") 
+  }
+  return (c(coord[1]))
+}
+
+getData_Ogi <-function(lati, long, date) {
+  
+  lat <- coordinates(lati)
+  longi <- paste("-", coordinates(long), sep="")
+  
+  print(c(lat,longi))
+  
+  # get the nearest station
+  # be aware that the nearest station can change over time as new stations can appear
+  nearest_station <- nearest_stations_ogimet(country = "Portugal", 
+                                             date= ymd(date(date)),
+                                             point = c(longi, lat),
+                                             add_map = FALSE, 
+                                             no_of_stations = 1) 
+  
+  # scrap meteorological data from Ogimet regarding a period and a specific station
+  meteo_data <- meteo_ogimet(date=date,interval="daily", station=nearest_station$wmo_id)
+  return(meteo_data)
+}
+
+coord_values <- select(fire_Test_Data, lat, lon, alert_date)
+test_data <- getData_Ogi(coord_values[[1]][1], coord_values[[2]][1], coord_values[[3]][1])
+test_data$id <- c(fire_Test_Data[[1]][1])
+
+for(i in 2:nrow(fire_Test_Data)) {
+  cat(i)
+  ogimet_dados <- getData_Ogi(coord_values[[1]][i], coord_values[[2]][i], coord_values[[3]][i])
+  ogimet_dados$id <- c(fire_Test_Data[[1]][i])
+  test_data <- rbind(test_data[colnames(test_data)], ogimet_dados[colnames(test_data)])
+}
+save(test_data, file="Rdata/ogimetData_test.Rdata")
+
+#remover colunas que têm demasiados NA's (> 10% do conjunto de dados)
+test_data <- test_data %>% select(-c(station_ID,Date,TotClOct,SunD1h,WindkmhGust,Precmm,SnowDepcm,WindkmhDir,PreselevHp,lowClOct,VisKm,TdAvgC,PresslevHp))
+test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"))
+
+# Alterar os valores da variável origin de categóricos para numéricos
+test_data_NA$origin <- c('fire'=1,'firepit'=2,'agriculture'=3,'agric_burn' =4,'false_alarm'=5)[test_data_NA$origin]
+
+# Dividir o dia em 4 partes cada uma com 6 horas (1h - 6:59 -> 1 parte, 7h - 12:59 -> 2 parte, 13h - 18:59 -> 3 parte, 19h - 00h59 -> 4 parte)
+# Alert hour
+test_data_NA$alert_hour <- hour(test_data_NA$alert_hour)
+test_data_NA$alert_hour <- ifelse(test_data_NA$alert_hour <= 6 & test_data_NA$alert_hour > 0, 1, ifelse(test_data_NA$alert_hour <= 12 & test_data_NA$alert_hour > 6, 2, ifelse(test_data_NA$alert_hour <= 18 & test_data_NA$alert_hour > 12, 3, 4)))
+
+# First Intervation hour
+test_data_NA$firstInterv_hour <- hour(test_data_NA$firstInterv_hour)
+test_data_NA$firstInterv_hour <- ifelse(test_data_NA$firstInterv_hour <= 6 & test_data_NA$firstInterv_hour > 0, 1, ifelse(test_data_NA$firstInterv_hour <= 12 & test_data_NA$firstInterv_hour > 6, 2, ifelse(test_data_NA$firstInterv_hour <= 18 & test_data_NA$firstInterv_hour > 12, 3, 4)))
+
+# Extinction hour
+test_data_NA$extinction_hour <- hour(test_data_NA$extinction_hour)
+test_data_NA$extinction_hour <- ifelse(test_data_NA$extinction_hour <= 6 & test_data_NA$extinction_hour > 0, 1, ifelse(test_data_NA$extinction_hour <= 12 & test_data_NA$extinction_hour > 6, 2, ifelse(test_data_NA$extinction_hour <= 18 & test_data_NA$extinction_hour > 12, 3, 4)))
+
+# Alterar data para o formato [year].[quarter]
+test_data_NA$alert_date <- quarter(date(test_data_NA$alert_date), with_year = TRUE)
+test_data_NA$firstInterv_date <- quarter(date(test_data_NA$firstInterv_date), with_year = TRUE)
+test_data_NA$extinction_date <- quarter(date(test_data_NA$extinction_date), with_year = TRUE)
+
+#remover outras colunas 
+dataset_test <- test_data_NA %>% select(-c(id,lon,lat))
+
+# conjunto de dados com NAs 
+save(dataset_test, file="Rdata/Test_Data_na.Rdata")
+
+test_data_noNAs <- drop_na(dataset_test, any_of(c(colnames(test_data)[colnames(test_data) != "id"])))
+
+save(test_data_noNAs, file="Rdata/Test_Data_noNa.Rdata")
+saveRDS(test_data_noNAs, "Rdata/Test_Data_noNa.rds")
+cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Test_Data) - nrow(test_data_noNAs)) / nrow(fire_Test_Data) * 100), '%')
+```
+
+O novo conjunto de dados foi guardado com o nome *ogimetData_test.Rdata*, e, também foram eliminadas colunas com muitos valores nulos e de forma a manter a coerência com o conjunto anterior.
+A coluna *id* foi eliminada pois apenas identifica o caso não traz valor para o conjunto de dados, assim sendo, esta deve ser eliminada.
+Bem como, as colunas *lon* e *lat* já não acrescentariam valor, assim, também foram eliminadas.
+O novo conjunto de dados foi guardado *Test_Data_na.Rdata*, e, de igual forma foi necessário averiguar o peso de apagar linhas com valores nulos.
+E, das 4283 observações, obtemos 3901 observações resultando numa perda de 8.91% das observações, guardados no ficheiro *Test_Data_noNa.Rdata* e *Test_Data_noNa.rds*.
+
+#### 4. Feature Extraction
+
+Para poder treinar um bom modelo de Machine Learning é necessário fazer um estudo de quais características são as mais importantes, como se correlacionam e como usa-las.
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(corrplot) 
+
+path <- paste( getwd(), "/Rdata/Train_Data_noNa.rds",sep = "")
+
+train_data_noNAs <- readRDS(path)
+
+#remover colunas com valores não numéricos
+ogi_data_ft <- train_data_noNAs[ , unlist(lapply(train_data_noNAs, is.numeric))]
+ogi_data_ft <- ogi_data_ft[, -c(11,12)]
+
+#Principal Component Analysis (PCA)
+ogi_pca <- prcomp(ogi_data_ft, scale = TRUE, center=TRUE)
+ogi_pca
+#ggbiplot2(ogi_pca, labels=rownames(ogi_data_ft))
+
+ogi_corr <- cor(ogi_data_ft)
+
+corrplot(ogi_corr, type="lower",is.corr = FALSE, method="number", number.cex = 0.5,diag=FALSE) 
+corrplot.mixed(ogi_corr, lower = "circle", upper = "number", number.cex = 0.5, tl.col = "black", tl.cex = 0.5)
+
+ogi_corr1 <- cor.mtest(ogi_data_ft, conf.level=0.95)
+corrplot(ogi_corr, p.mat = ogi_corr1$p, type="lower", diag=FALSE, sig.level = 0.05, insig="blank")
+
+corrplot(cor(ogi_corr), method = "circle")
+
+corrplot(cor(ogi_corr), method = "number")
+```
+
+Usando a biblioteca *corrplot* pode-se averiguar a correlação entre as colunas, excepto as colunas *district* e *municipality*.
+Para se observar as correlações, é mais fácil visualizar numa matriz de circulos (azul quão mais correlacionadas forem e laranja quão menos relacionadas forem) ou numa matriz com os valores no local dos ciculos, estes dois comandos são as duas ultimas linhas, onde podemos observar que existe uma grande correlação entre *extinction_date* e *alert_date*, *extinction_hour* e *alert_hour*, *firstInterv_date* e *alert_date* e *extinction_date*, *firstInterv_hour* e *alert_hour* e *extinction_hour*.
+Pode-se observar também que as temperaturas estão diretamente relacionadas.
+De seguida, optou-se por descobrir a importância das características usando o método CART.
+Do qual se observou que *municipality*, *district*, *TemperatureCMax*, *WindkmhInt*, *TemperatureCAvg*, *TemperatureCMin*, *village_area*, *extinction_hour*, *farming_area* e *village_veget_area* são as mais importantes.
+
+```{r}
+#############################
+####CART TREES#########
+#############################
+library(tidyverse)
+library(tidymodels)
+
+path <- paste( getwd(), "/Rdata/Train_Data_noNa.rds",sep = "")
+
+fire_Train_Data <- readRDS(path)
+
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+
+fire_Test_Data <- readRDS(path)
+fire_Test_Data$intentional_cause = NA
+
+model_rt <- decision_tree(mode="regression", engine="rpart")
+rt_fit <- model_rt %>% fit(intentional_cause ~ ., data = fire_Train_Data)
+library(rpart.plot)
+# to extract it from the parsnip
+rt_fit %>% extract_fit_engine() %>% rpart.plot(roundint=FALSE)
+
+library(vip) 
+vip(rt_fit)
+
+fire_tree <- rt_fit %>% extract_fit_engine() 
+fire_tree$variable.importance
+```
+
+#### 5. Modelos Preditivos
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+
+path <- paste( getwd(), "/Rdata/Train_Data_noNa.rds",sep = "")
+
+fire_Train_Data <- readRDS(path)
+
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+
+fire_Test_Data <- readRDS(path)
+#fire_Test_Data$intentional_cause = NA
 
 
+#pima_rec <- recipe(intentional_cause ~.,fire_Train_Data) 
+fire_Train_Data$intentional_cause <- as.factor(fire_Train_Data$intentional_cause)
+pima_rec <- recipe(intentional_cause ~.,fire_Train_Data)
+pima_rec
+pima_rec <- pima_rec %>% step_normalize(all_numeric_predictors()) %>% prep() 
+pima_train <- pima_rec %>% bake(new_data=NULL) #não vai nenhum null no data set
+pima_test <- pima_rec %>% bake(new_data=fire_Test_Data)
+str(pima_train)
+str(pima_test)
 
 
+library(kknn)
+model_knn <- nearest_neighbor(mode="classification")
 
+#Fit the k-nn algorithm to the train data and inspect the obtained model.
+knn_fit <- model_knn %>%
+  fit(intentional_cause ~., data = pima_train)#prever intentional_cause em relação a todas as variaveis
+knn_fit
+
+
+#Make predictions on the test set.
+knn_preds <- predict(knn_fit,new_data = pima_test)
+knn_preds
+```

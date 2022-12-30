@@ -66,9 +66,16 @@ for(i in 2:nrow(fire_Test_Data)) {
 }
 save(test_data, file="Rdata/ogimetData_test.Rdata")
 
+#para dar load e não correr sempre ogimet
+load(file="Rdata/ogimetData_test.Rdata")
+
 #remover colunas que têm demasiados NA's (> 10% do conjunto de dados)
 test_data <- test_data %>% select(-c(station_ID,Date,TotClOct,SunD1h,WindkmhGust,Precmm,SnowDepcm,WindkmhDir,PreselevHp,lowClOct,VisKm,TdAvgC,PresslevHp))
 test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"))
+
+# calcular duração do incêndio
+test_data_NA$fire_duration <- as.numeric(difftime(as_datetime(paste(date(test_data_NA$extinction_date), test_data_NA$extinction_hour)), as_datetime(paste(date(test_data_NA$alert_date), test_data_NA$alert_hour)), units = "mins"))
+test_data_NA$fire_duration <- ifelse(test_data_NA$fire_duration < 0, 0, test_data_NA$fire_duration) 
 
 # Alterar os valores da variável origin de categóricos para numéricos
 test_data_NA$origin <- c('fire'=1,'firepit'=2,'agriculture'=3,'agric_burn' =4,'false_alarm'=5)[test_data_NA$origin]
@@ -92,12 +99,14 @@ test_data_NA$firstInterv_date <- quarter(date(test_data_NA$firstInterv_date), wi
 test_data_NA$extinction_date <- quarter(date(test_data_NA$extinction_date), with_year = TRUE)
 
 #remover outras colunas 
-dataset_test <- test_data_NA %>% select(-c(id,region,lon,lat))
+dataset_test <- test_data_NA %>% select(-c(id,lon,lat,region))
 
 # conjunto de dados com NAs 
 save(dataset_test, file="Rdata/Test_Data_na.Rdata")
+saveRDS(dataset_test, "Rdata/Test_Data_na.rds")
 
-test_data_noNAs <- drop_na(dataset_test, any_of(c(colnames(test_data)[colnames(test_data) != "id"])))
+#test_data_noNAs <- drop_na(dataset_test, any_of(c(colnames(test_data)[colnames(test_data) != "id"])))
 
-save(test_data_noNAs, file="Rdata/Test_Data_noNa.Rdata")
-cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Test_Data) - nrow(test_data_noNAs)) / nrow(fire_Test_Data) * 100), '%')
+#save(test_data_noNAs, file="Rdata/Test_Data_noNa.Rdata")
+#saveRDS(test_data_noNAs, "Rdata/Test_Data_noNa.rds")
+#cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Test_Data) - nrow(test_data_noNAs)) / nrow(fire_Test_Data) * 100), '%')

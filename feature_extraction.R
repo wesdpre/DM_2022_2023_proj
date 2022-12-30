@@ -6,6 +6,10 @@ library(corrplot)
 #install_github("vqv/ggbiplot2")
 #library(ggbiplot2)
 
+path <- paste( getwd(), "/Rdata/Train_Data_noNa.rds",sep = "")
+
+train_data_noNAs <- readRDS(path)
+
 #remover colunas com valores não numéricos
 ogi_data_ft <- train_data_noNAs[ , unlist(lapply(train_data_noNAs, is.numeric))]
 ogi_data_ft <- ogi_data_ft[, -c(11,12)]
@@ -22,3 +26,7 @@ corrplot.mixed(ogi_corr, lower = "circle", upper = "number", number.cex = 0.5, t
 
 ogi_corr1 <- cor.mtest(ogi_data_ft, conf.level=0.95)
 corrplot(ogi_corr, p.mat = ogi_corr1$p, type="lower", diag=FALSE, sig.level = 0.05, insig="blank")
+
+corrplot(cor(ogi_corr), method = "circle")
+
+corrplot(cor(ogi_corr), method = "number")
