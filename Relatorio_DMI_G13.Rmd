@@ -3,11 +3,11 @@ title: "Previsão de Fogo Posto em Portugal 2014-2015"
 author: Joana Pereira (201805191), Pedro Azevedo (201905966), Pedro Santos(201904529)
 date: "01 de janeiro, 2022"
 output:
-  pdf_document:
-        fig_crop: no
+  word_document: default
   html_document:
     df_print: paged
-  word_document: default
+  pdf_document:
+        fig_crop: no
 geometry: margin=2cm
 subtitle: Data Mining I - Trabalho Prático
 fontsize: 9pt
@@ -55,7 +55,7 @@ Nesta tarefa, será ainda necessário verificar a necessidade de limpeza e pré-
 
 **Tarefa 3:** Kaggle Como tarefa final, deve ser colocado o presente relatório no Kaggle, cujo o nome da equipa foi Grupo 13.
 
-#### 3. Pré-processamento de dados e Análise exploratória de dados
+#### 2. Pré-processamento de dados e Análise exploratória de dados
 
 ```{r}
 library(tidyverse)
@@ -63,6 +63,7 @@ library(lubridate)
 library(dplyr)
 
 fire_Train_Data <- read_csv("fires_train.csv")
+fire_Test_Data <- read_csv("fires_test.csv")
 ```
 
 Primeiramente, deve-se importar não só o conjunto de dados (previamente já divididos em treino e teste), bem como, importar as bibliotecas necessárias.
@@ -136,7 +137,9 @@ fire_Train_Data <- drop_na(fire_Train_Data, any_of(y))
 apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
 ```
 
-Para este trabalho foi também cedido um conjunto de dados de teste, este, será para posteriormente ser colocado o valor previsto por um modelo de machine learning que será posteriormente estudado. Contudo, este conjunto de dados apresenta alguns dados em falta como a region que apresentava dois valores nulos, estes foram preenchidos como os de dados de treino. Também se usou a função fill para preencher as colunas "extinction_date", "extinction_hour", "firstInterv_date" e "firstInterv_hour".
+Para este trabalho foi também cedido um conjunto de dados de teste, este, será para posteriormente ser colocado o valor previsto por um modelo de machine learning que será posteriormente estudado.
+Contudo, este conjunto de dados apresenta alguns dados em falta como a region que apresentava dois valores nulos, estes foram preenchidos como os de dados de treino.
+Também se usou a função fill para preencher as colunas "extinction_date", "extinction_hour", "firstInterv_date" e "firstInterv_hour".
 
 ```{r}
 fire_Test_Data <- read_csv("fires_test.csv")
@@ -158,10 +161,9 @@ fire_Test_Data <- fire_Test_Data %>% fill(firstInterv_hour)
 apply(X = is.na(fire_Test_Data), MARGIN = 2, FUN = sum)
 ```
 
-
 Com este conjunto de dados foi possível, apenas, fazer o pré-processamento dos dados já fornecidos.
 Contudo, para que o modelo fosse treinado com mais dados, por sugestão da docente, usou-se um pacote disponível no Github, *bczernecki/climate*, cujo objetivo do pacote Climate R é automatizar o download de dados meteorológicos e hidrológicos in-situ de repositórios disponíveis publicamente.
-Desta forma, para cada dia e localização disponíveis no conjunto de dados principal foi possível anexar mais um conjunto de características tanto ao conjunto *fire_Test_Data*, bem como, ao *fire_Test_Data*.
+Desta forma, para cada dia e localização disponíveis no conjunto de dados principal foi possível anexar mais um conjunto de características tanto ao conjunto *fire_Train_Data*, bem como, ao *fire_Test_Data*.
 
 ```{r}
 library(remotes)
@@ -255,7 +257,7 @@ Com os dados obtidos, foi criada uma nova coluna "fire_duration", cujo valor rem
 ```{r}
 # calcular duração do incêndio
 train_data_NA$fire_duration <- as.numeric(difftime(as_datetime(paste(date(train_data_NA$extinction_date), train_data_NA$extinction_hour)), as_datetime(paste(date(train_data_NA$alert_date), train_data_NA$alert_hour)), units = "mins"))
-train_data_NA$fire_duration <- ifelse(train_data_NA$fire_duration < 0, 0, train_data_NA$fire_duration) 
+train_data_NA$fire_duration <- ifelse(train_data_NA$fire_duration < 0, 0, train_data_NA$fire_duration)  
 ```
 
 Por existir demasiadas colunas com valores categóricos, estes foram traduzidos para numéricos, como foi o caso da coluna "origin".
@@ -285,7 +287,8 @@ train_data_NA$extinction_date <- quarter(date(train_data_NA$extinction_date), wi
 ```
 
 A coluna *id* foi eliminada pois apenas identifica o caso não traz valor para o conjunto de dados, assim sendo, esta deve ser eliminada.
-Bem como, as colunas *lon* e *lat* já não acrescentariam valor, assim, também foram eliminadas. A coluna *region* foi também eliminada pois apresentava 1216 valores com o caracter "-". 
+Bem como, as colunas *lon* e *lat* já não acrescentariam valor, assim, também foram eliminadas.
+A coluna *region* foi também eliminada pois apresentava 1216 valores com o caracter "-".
 Mudou-se ainda a posição da coluna "intentional_cause" para o final, pois está será usada para o treino do modelo.
 No entanto, algumas das colunas ainda apresentavam alguns valores nulos, tendo em conta que preencher os valores nulos com médias ou vizinhos podia tornar o conjunto tendencioso, avaliou-se o peso de apagar essas linhas, e, das 9997 observações obtemos 9074 observações resultando numa perda de cerca de 9.02% das observações, este novo conjunto foi guardado com o nome *Train_Data_noNa.Rdata* e *Train_Data_noNa.rds*.
 
@@ -306,11 +309,13 @@ saveRDS(train_data_noNAs, "Rdata/Train_Data_noNa.rds")
 cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Train_Data) - nrow(train_data_noNAs)) / nrow(fire_Train_Data) * 100), '%')
 ```
 
-Para o conjunto *fire_Test_Data*, procedeu-se da mesma forma, sendo que, apenas não se recolocou nenhuma coluna.
+Para o conjunto *fire_Test_Data*, procedeu-se da mesma forma, sendo que, neste conjunto de dados não foi possivel apagar qualquer linha uma vez que a competição do kaggle assim o exigia.
+Assim, apenas foram acrescentadas novas características ao conjunto de dados.
+Para os casos em que existem valores nulos então foi usado o fill com deslocamento para cima e para baico na linha.
 
 ```{r}
 library(remotes)
-install_github("bczernecki/climate")
+install_github("bczernecki/climate", force = TRUE)
 library(climate)
 library(lubridate)
 library(measurements)
@@ -329,7 +334,6 @@ coordinates <- function(coordinate_string) {
   if(c(splited)[1] == "00") {
     flag = 2
   }
-
   if(flag == 2) {
     splited2 <- unlist(strsplit(c(splited)[3], split="\\."))
     dms <- paste(c((splited)[2], (splited2)[1], (splited2)[2]), collapse = " ")
@@ -344,7 +348,6 @@ coordinates <- function(coordinate_string) {
   }
   return (c(coord[1]))
 }
-
 getData_Ogi <-function(lati, long, date) {
   
   lat <- coordinates(lati)
@@ -366,20 +369,35 @@ getData_Ogi <-function(lati, long, date) {
 }
 
 coord_values <- select(fire_Test_Data, lat, lon, alert_date)
-test_data <- getData_Ogi(coord_values[[1]][1], coord_values[[2]][1], coord_values[[3]][1])
+test_data <- getData_Ogi(coord_values[[1]][1], coord_values[[2]][1], date(coord_values[[3]][1]))
+#names(test_data) <- c("station_ID","Date","TemperatureCAvg","TemperatureCMax","TemperatureCMin","TdAvgC","HrAvg","WindkmhDir","WindkmhInt","WindkmhGust","PresslevHp","Precmm","TotClOct","lowClOct","SunD1h","VisKm","PreselevHp","SnowDepcm","id")
 test_data$id <- c(fire_Test_Data[[1]][1])
 
+count = 0
 for(i in 2:nrow(fire_Test_Data)) {
   cat(i)
-  ogimet_dados <- getData_Ogi(coord_values[[1]][i], coord_values[[2]][i], coord_values[[3]][i])
-  ogimet_dados$id <- c(fire_Test_Data[[1]][i])
-  test_data <- rbind(test_data[colnames(test_data)], ogimet_dados[colnames(test_data)])
+  ogimet_dados <- getData_Ogi(coord_values[[1]][i], coord_values[[2]][i], date(coord_values[[3]][i]))
+  if(nrow(ogimet_dados) != 0 || length(nrow(ogimet_dados)) == 0) {
+    ogimet_dados$id <- c(fire_Test_Data[[1]][i])
+    test_data <- rbind(test_data[colnames(test_data)], ogimet_dados[colnames(test_data)])
+  }else {
+    count = count +1
+  }
 }
+
+cat(count)
 save(test_data, file="Rdata/ogimetData_test.Rdata")
+
+load(file="Rdata/ogimetData_test.Rdata")
 
 #remover colunas que têm demasiados NA's (> 10% do conjunto de dados)
 test_data <- test_data %>% select(-c(station_ID,Date,TotClOct,SunD1h,WindkmhGust,Precmm,SnowDepcm,WindkmhDir,PreselevHp,lowClOct,VisKm,TdAvgC,PresslevHp))
-test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"))
+
+test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"), all = TRUE)[-1]
+
+# calcular duração do incêndio
+test_data_NA$fire_duration <- as.numeric(difftime(as_datetime(paste(date(test_data_NA$extinction_date), test_data_NA$extinction_hour)), as_datetime(paste(date(test_data_NA$alert_date), test_data_NA$alert_hour)), units = "mins"))
+test_data_NA$fire_duration <- ifelse(test_data_NA$fire_duration < 0, 0, test_data_NA$fire_duration) 
 
 # Alterar os valores da variável origin de categóricos para numéricos
 test_data_NA$origin <- c('fire'=1,'firepit'=2,'agriculture'=3,'agric_burn' =4,'false_alarm'=5)[test_data_NA$origin]
@@ -403,13 +421,21 @@ test_data_NA$firstInterv_date <- quarter(date(test_data_NA$firstInterv_date), wi
 test_data_NA$extinction_date <- quarter(date(test_data_NA$extinction_date), with_year = TRUE)
 
 #remover outras colunas 
-dataset_test <- test_data_NA %>% select(-c(id,lon,lat))
+dataset_test <- test_data_NA %>% select(-c(region,lon,lat))
 
 # conjunto de dados com NAs 
 save(dataset_test, file="Rdata/Test_Data_na.Rdata")
 
-test_data_noNAs <- drop_na(dataset_test, any_of(c(colnames(test_data)[colnames(test_data) != "id"])))
-
+#test_data_noNAs <- drop_na(dataset_test, any_of(c(colnames(test_data)[colnames(test_data) != "id"])))
+# não remover NAs
+test_data_noNAs <- test_data_NA
+test_data_noNAs <- test_data_noNAs %>% select(-c(region,lon,lat))
+test_data_noNAs <- test_data_noNAs %>% fill(TemperatureCAvg, .direction = "updown")
+test_data_noNAs <- test_data_noNAs %>% fill(HrAvg, .direction = "updown")
+test_data_noNAs <- test_data_noNAs %>% fill(WindkmhInt, .direction = "updown")
+test_data_noNAs <- test_data_noNAs %>% fill(TemperatureCMax, .direction = "updown")
+test_data_noNAs <- test_data_noNAs %>% fill(TemperatureCMin, .direction = "updown")
+apply(X = is.na(test_data_noNAs), MARGIN = 2, FUN = sum)
 save(test_data_noNAs, file="Rdata/Test_Data_noNa.Rdata")
 saveRDS(test_data_noNAs, "Rdata/Test_Data_noNa.rds")
 cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Test_Data) - nrow(test_data_noNAs)) / nrow(fire_Test_Data) * 100), '%')
@@ -418,10 +444,8 @@ cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados o
 O novo conjunto de dados foi guardado com o nome *ogimetData_test.Rdata*, e, também foram eliminadas colunas com muitos valores nulos e de forma a manter a coerência com o conjunto anterior.
 A coluna *id* foi eliminada pois apenas identifica o caso não traz valor para o conjunto de dados, assim sendo, esta deve ser eliminada.
 Bem como, as colunas *lon* e *lat* já não acrescentariam valor, assim, também foram eliminadas.
-O novo conjunto de dados foi guardado *Test_Data_na.Rdata*, e, de igual forma foi necessário averiguar o peso de apagar linhas com valores nulos.
-E, das 4283 observações, obtemos 3901 observações resultando numa perda de 8.91% das observações, guardados no ficheiro *Test_Data_noNa.Rdata* e *Test_Data_noNa.rds*.
 
-#### 4. Feature Extraction
+#### 3. Feature Extraction
 
 Para poder treinar um bom modelo de Machine Learning é necessário fazer um estudo de quais características são as mais importantes, como se correlacionam e como usa-las.
 
@@ -492,14 +516,14 @@ fire_tree <- rt_fit %>% extract_fit_engine()
 fire_tree$variable.importance
 ```
 
-#### 5. Modelos Preditivos
+#### 4. Modelos Preditivos
 
 Para poder estudar os modelos preditivos o conjunto de dados de treino tem que ser dividido, para que se possa ensinar o modelo e depois testar para saber a sua performance.
 
 Assim, dividiu-se o data set em:
 
-* Conjunto de treino (70%) - um subconjunto para treinar/ensinar os modelos;
-* Conjunto de teste (30%) - um subconjunto para testar os modelos treinados e obter métricas de performance.
+-   Conjunto de treino (70%) - um subconjunto para treinar/ensinar os modelos;
+-   Conjunto de teste (30%) - um subconjunto para testar os modelos treinados e obter métricas de performance.
 
 ```{r}
 library(tidyverse) 
@@ -520,7 +544,7 @@ fire_train <- training(fire_split)
 fire_test <- testing(fire_split)
 ```
 
-O objectivo final é averiguar qual o modelo melhor para prever se o fogo foi posto ou não. 
+O objectivo final é averiguar qual o modelo melhor para prever se o fogo foi posto ou não.
 Decidiu-se experimentar o data set em quatro modelos diferentes, para ver qual deles será o melhor ,e, por consequência, o que faz melhores previsões.
 
 **Multiple Linear Regression Model**
@@ -565,8 +589,8 @@ lm_preds2 %>% metrics(truth=intentional_cause,estimate=.pred)
 #3 mae     standard      0.379 
 ```
 
-
 **Ridge Regression Model**
+
 ```{r}
 # model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^2,mixture=0)
 model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=0) 
@@ -605,8 +629,8 @@ glm_ridge_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 #3 mae     standard      0.390 
 ```
 
-
 **Lasso Regression Model**
+
 ```{r}
 # model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^2,mixture=1)
 model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=1) 
@@ -628,9 +652,8 @@ glm_lasso_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 
 ```
 
-
-
 **Cart Tree Model**
+
 ```{r}
 model_rt <- decision_tree(mode="regression", engine="rpart")
 rt_fit <- model_rt %>% 
@@ -664,8 +687,8 @@ rt_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 
 ```
 
-
 **KNN model**
+
 ```{r}
 library(tidyverse) 
 library(tidymodels)
@@ -736,13 +759,16 @@ knn_preds %>% metrics(truth=intentional_cause,estimate=.pred_class)
 #2 kap      binary         0.202
 ```
 
-
 Depois de feitas as previsões no modelo, avaliou-se o seu desempenho, como se pode ver nos resultados (comentários), para avaliar, teve-se em conta as métricas rmse, r2 e mae.
-O erro de previsão RMSE (Root Mean Squared Error), este representa a diferença média entre os valores conhecidos observados nos dados de teste e os valores de resultados previstos pelo modelo. Quanto *menor* o valor, melhor o modelo.
-O R-square (R2), que representa a correlação entre os valores observados e os valores previstos. Quanto *maior* o valor, melhor o modelo.
-Erro absoluto médio (MAE) é o erro absoluto médio entre os valores reais e previstos. Quanto *menor* o valor, mais preciso é o modelo.
-Com isto, pode-se concluir que o melhor modelo foi _KNN Model_ com uma _accuracy_ de 69%.
+O erro de previsão RMSE (Root Mean Squared Error), este representa a diferença média entre os valores conhecidos observados nos dados de teste e os valores de resultados previstos pelo modelo.
+Quanto *menor* o valor, melhor o modelo.
+O R-square (R2), que representa a correlação entre os valores observados e os valores previstos.
+Quanto *maior* o valor, melhor o modelo.
+Erro absoluto médio (MAE) é o erro absoluto médio entre os valores reais e previstos.
+Quanto *menor* o valor, mais preciso é o modelo.
+Com isto, pode-se concluir que o melhor modelo foi *KNN Model* com uma *accuracy* de 69%.
 Foi colocado no kaggle a sua previsão.
+
 ```{r}
 #para o kaggle
 
@@ -755,15 +781,9 @@ names(prev)[length(names(prev))]<-"intentional_cause"
 write.csv(prev, "grupo13_DMI.csv", row.names=FALSE)
 ```
 
+#### 5. Conclusão
 
-
-
-#### 6. Conclusão
-
-Deve concluir-se que este trabalho abordou diversas temáticas apresentadas nas aulas de Data Mining I. Apresentaram-se algumas adversidades, normais, pois o conjunto de dados teve que ser pré-processado, algumas decisões foram tomadas com intuito de melhorar o conjunto de dados mas que, por consequência, o diminui. Foi possível aplicar aluns modelos de previsão e, assim, usando uma nova linguagem de programação, mais orientada a Data Science ser capaz de prever resultados finais.
-Acresceu-se, ainda, a capacidade de procurar melhorar o conjunto de dados, fornecendo mais dados ao original. 
+Deve concluir-se que este trabalho abordou diversas temáticas apresentadas nas aulas de Data Mining I. Apresentaram-se algumas adversidades, normais, pois o conjunto de dados teve que ser pré-processado, algumas decisões foram tomadas com intuito de melhorar o conjunto de dados mas que, por consequência, o diminui.
+Foi possível aplicar aluns modelos de previsão e, assim, usando uma nova linguagem de programação, mais orientada a Data Science ser capaz de prever resultados finais.
+Acresceu-se, ainda, a capacidade de procurar melhorar o conjunto de dados, fornecendo mais dados ao original.
 Por fim, dentro do possível, completou-se a tarefa do Kaggle.
-
-
-
-
