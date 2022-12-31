@@ -113,9 +113,7 @@ save(dataset_test, file="Rdata/Test_Data_na.Rdata")
 #test_data_noNAs <- drop_na(dataset_test, any_of(c(colnames(test_data)[colnames(test_data) != "id"])))
 # não remover NAs
 test_data_noNAs <- test_data_NA
-load("Rdata/Test_Data_noNa.Rdata")
 test_data_noNAs <- test_data_noNAs %>% select(-c(region,lon,lat))
-test_data_noNAs$fire_duration <- as.numeric(difftime(as_datetime(paste(date(test_data_noNAs$extinction_date), test_data_noNAs$extinction_hour)), as_datetime(paste(date(test_data_noNAs$alert_date), test_data_noNAs$alert_hour)), units = "mins"))
-test_data_noNAs$fire_duration <- ifelse(test_data_noNAs$fire_duration < 0, 0, test_data_noNAs$fire_duration) 
 save(test_data_noNAs, file="Rdata/Test_Data_noNa.Rdata")
+saveRDS(test_data_noNAs, "Rdata/Test_Data_noNa.rds")
 cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Test_Data) - nrow(test_data_noNAs)) / nrow(fire_Test_Data) * 100), '%')
