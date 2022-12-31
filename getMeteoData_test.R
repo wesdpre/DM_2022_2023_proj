@@ -1,5 +1,5 @@
 library(remotes)
-install_github("bczernecki/climate")
+install_github("bczernecki/climate", force = TRUE)
 library(climate)
 library(lubridate)
 library(measurements)
@@ -18,7 +18,6 @@ coordinates <- function(coordinate_string) {
   if(c(splited)[1] == "00") {
     flag = 2
   }
-
   if(flag == 2) {
     splited2 <- unlist(strsplit(c(splited)[3], split="\\."))
     dms <- paste(c((splited)[2], (splited2)[1], (splited2)[2]), collapse = " ")
@@ -33,7 +32,6 @@ coordinates <- function(coordinate_string) {
   }
   return (c(coord[1]))
 }
-
 getData_Ogi <-function(lati, long, date) {
   
   lat <- coordinates(lati)
@@ -55,23 +53,31 @@ getData_Ogi <-function(lati, long, date) {
 }
 
 coord_values <- select(fire_Test_Data, lat, lon, alert_date)
-test_data <- getData_Ogi(coord_values[[1]][1], coord_values[[2]][1], coord_values[[3]][1])
+test_data <- getData_Ogi(coord_values[[1]][1], coord_values[[2]][1], date(coord_values[[3]][1]))
+#names(test_data) <- c("station_ID","Date","TemperatureCAvg","TemperatureCMax","TemperatureCMin","TdAvgC","HrAvg","WindkmhDir","WindkmhInt","WindkmhGust","PresslevHp","Precmm","TotClOct","lowClOct","SunD1h","VisKm","PreselevHp","SnowDepcm","id")
 test_data$id <- c(fire_Test_Data[[1]][1])
 
+count = 0
 for(i in 2:nrow(fire_Test_Data)) {
   cat(i)
-  ogimet_dados <- getData_Ogi(coord_values[[1]][i], coord_values[[2]][i], coord_values[[3]][i])
-  ogimet_dados$id <- c(fire_Test_Data[[1]][i])
-  test_data <- rbind(test_data[colnames(test_data)], ogimet_dados[colnames(test_data)])
+  ogimet_dados <- getData_Ogi(coord_values[[1]][i], coord_values[[2]][i], date(coord_values[[3]][i]))
+  if(nrow(ogimet_dados) != 0 || length(nrow(ogimet_dados)) == 0) {
+    ogimet_dados$id <- c(fire_Test_Data[[1]][i])
+    test_data <- rbind(test_data[colnames(test_data)], ogimet_dados[colnames(test_data)])
+  }else {
+    count = count +1
+  }
 }
+
+cat(count)
 save(test_data, file="Rdata/ogimetData_test.Rdata")
 
-#para dar load e não correr sempre ogimet
 load(file="Rdata/ogimetData_test.Rdata")
 
 #remover colunas que têm demasiados NA's (> 10% do conjunto de dados)
 test_data <- test_data %>% select(-c(station_ID,Date,TotClOct,SunD1h,WindkmhGust,Precmm,SnowDepcm,WindkmhDir,PreselevHp,lowClOct,VisKm,TdAvgC,PresslevHp))
-test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"))
+
+test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"), all = TRUE)[-1]
 
 # calcular duração do incêndio
 test_data_NA$fire_duration <- as.numeric(difftime(as_datetime(paste(date(test_data_NA$extinction_date), test_data_NA$extinction_hour)), as_datetime(paste(date(test_data_NA$alert_date), test_data_NA$alert_hour)), units = "mins"))
@@ -99,14 +105,17 @@ test_data_NA$firstInterv_date <- quarter(date(test_data_NA$firstInterv_date), wi
 test_data_NA$extinction_date <- quarter(date(test_data_NA$extinction_date), with_year = TRUE)
 
 #remover outras colunas 
-dataset_test <- test_data_NA %>% select(-c(id,lon,lat,region))
+dataset_test <- test_data_NA %>% select(-c(region,lon,lat))
 
 # conjunto de dados com NAs 
 save(dataset_test, file="Rdata/Test_Data_na.Rdata")
-saveRDS(dataset_test, "Rdata/Test_Data_na.rds")
 
 #test_data_noNAs <- drop_na(dataset_test, any_of(c(colnames(test_data)[colnames(test_data) != "id"])))
-
-#save(test_data_noNAs, file="Rdata/Test_Data_noNa.Rdata")
-#saveRDS(test_data_noNAs, "Rdata/Test_Data_noNa.rds")
-#cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Test_Data) - nrow(test_data_noNAs)) / nrow(fire_Test_Data) * 100), '%')
+# não remover NAs
+test_data_noNAs <- test_data_NA
+load("Rdata/Test_Data_noNa.Rdata")
+test_data_noNAs <- test_data_noNAs %>% select(-c(region,lon,lat))
+test_data_noNAs$fire_duration <- as.numeric(difftime(as_datetime(paste(date(test_data_noNAs$extinction_date), test_data_noNAs$extinction_hour)), as_datetime(paste(date(test_data_noNAs$alert_date), test_data_noNAs$alert_hour)), units = "mins"))
+test_data_noNAs$fire_duration <- ifelse(test_data_noNAs$fire_duration < 0, 0, test_data_noNAs$fire_duration) 
+save(test_data_noNAs, file="Rdata/Test_Data_noNa.Rdata")
+cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Test_Data) - nrow(test_data_noNAs)) / nrow(fire_Test_Data) * 100), '%')

@@ -136,6 +136,29 @@ fire_Train_Data <- drop_na(fire_Train_Data, any_of(y))
 apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
 ```
 
+Para este trabalho foi também cedido um conjunto de dados de teste, este, será para posteriormente ser colocado o valor previsto por um modelo de machine learning que será posteriormente estudado. Contudo, este conjunto de dados apresenta alguns dados em falta como a region que apresentava dois valores nulos, estes foram preenchidos como os de dados de treino. Também se usou a função fill para preencher as colunas "extinction_date", "extinction_hour", "firstInterv_date" e "firstInterv_hour".
+
+```{r}
+fire_Test_Data <- read_csv("fires_test.csv")
+apply(X = is.na(fire_Test_Data), MARGIN = 2, FUN = sum)
+
+fire_Test_Data <- fire_Test_Data %>% select(-c(alert_source, parish))
+
+#REGION Só tem um ou dois na pode ser preenchido
+is.na(fire_Test_Data)#saber onde está na
+which(is.na(fire_Test_Data$region))#saber a linha do na
+fire_Test_Data[518,]
+fire_Test_Data[3987,]
+fire_Test_Data <- fire_Test_Data %>% mutate(region = ifelse(is.na(region), "Alentejo", region))
+
+fire_Test_Data <- fire_Test_Data %>% fill(extinction_date)
+fire_Test_Data <- fire_Test_Data %>% fill(extinction_hour)
+fire_Test_Data <- fire_Test_Data %>% fill(firstInterv_date)
+fire_Test_Data <- fire_Test_Data %>% fill(firstInterv_hour)
+apply(X = is.na(fire_Test_Data), MARGIN = 2, FUN = sum)
+```
+
+
 Com este conjunto de dados foi possível, apenas, fazer o pré-processamento dos dados já fornecidos.
 Contudo, para que o modelo fosse treinado com mais dados, por sugestão da docente, usou-se um pacote disponível no Github, *bczernecki/climate*, cujo objetivo do pacote Climate R é automatizar o download de dados meteorológicos e hidrológicos in-situ de repositórios disponíveis publicamente.
 Desta forma, para cada dia e localização disponíveis no conjunto de dados principal foi possível anexar mais um conjunto de características tanto ao conjunto *fire_Test_Data*, bem como, ao *fire_Test_Data*.
@@ -435,7 +458,8 @@ corrplot(cor(ogi_corr), method = "number")
 
 Usando a biblioteca *corrplot* pode-se averiguar a correlação entre as colunas, excepto as colunas *district* e *municipality*.
 Para se observar as correlações, é mais fácil visualizar numa matriz de circulos (azul quão mais correlacionadas forem e laranja quão menos relacionadas forem) ou numa matriz com os valores no local dos ciculos, estes dois comandos são as duas ultimas linhas, onde podemos observar que existe uma grande correlação entre *extinction_date* e *alert_date*, *extinction_hour* e *alert_hour*, *firstInterv_date* e *alert_date* e *extinction_date*, *firstInterv_hour* e *alert_hour* e *extinction_hour*.
-Pode-se observar também que as temperaturas estão diretamente relacionadas.
+Pode-se observar também que as temperaturas estão diretamente relacionadas,o é, instintivamente natural.
+Verificou-se ainda uma correlção entre *fire_duration* e *village_area* e *vegetation_area*, também algo bastante natural, tendo em conta que quão maior for a área de vegetação maior será a proporção que o fogo pode tomar, e, por consequência, o tempo de duração.
 De seguida, optou-se por descobrir a importância das características usando o método CART.
 Do qual se observou que *municipality*, *district*, *TemperatureCMax*, *WindkmhInt*, *TemperatureCAvg*, *TemperatureCMin*, *village_area*, *extinction_hour*, *farming_area* e *village_veget_area* são as mais importantes.
 
@@ -470,41 +494,195 @@ fire_tree$variable.importance
 
 #### 5. Modelos Preditivos
 
+Para poder estudar os modelos preditivos o conjunto de dados de treino tem que ser dividido, para que se possa ensinar o modelo e depois testar para saber a sua performance.
+
+Assim, dividiu-se o data set em:
+
+* Conjunto de treino (70%) - um subconjunto para treinar/ensinar os modelos;
+* Conjunto de teste (30%) - um subconjunto para testar os modelos treinados e obter métricas de performance.
+
 ```{r}
-library(tidyverse)
+library(tidyverse) 
 library(tidymodels)
 
 path <- paste( getwd(), "/Rdata/Train_Data_noNa.rds",sep = "")
 
 fire_Train_Data <- readRDS(path)
 
-path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+str(fire_Train_Data) 
+summary(fire_Train_Data)
 
-fire_Test_Data <- readRDS(path)
-#fire_Test_Data$intentional_cause = NA
-
-
-#pima_rec <- recipe(intentional_cause ~.,fire_Train_Data) 
-fire_Train_Data$intentional_cause <- as.factor(fire_Train_Data$intentional_cause)
-pima_rec <- recipe(intentional_cause ~.,fire_Train_Data)
-pima_rec
-pima_rec <- pima_rec %>% step_normalize(all_numeric_predictors()) %>% prep() 
-pima_train <- pima_rec %>% bake(new_data=NULL) #não vai nenhum null no data set
-pima_test <- pima_rec %>% bake(new_data=fire_Test_Data)
-str(pima_train)
-str(pima_test)
-
-
-library(kknn)
-model_knn <- nearest_neighbor(mode="classification")
-
-#Fit the k-nn algorithm to the train data and inspect the obtained model.
-knn_fit <- model_knn %>%
-  fit(intentional_cause ~., data = pima_train)#prever intentional_cause em relação a todas as variaveis
-knn_fit
-
-
-#Make predictions on the test set.
-knn_preds <- predict(knn_fit,new_data = pima_test)
-knn_preds
+set.seed(123)
+fire_split <- fire_Train_Data %>% initial_split(prop=.7,strata=intentional_cause) #rsample
+fire_split
+## <Training/Testing/Total> 
+fire_train <- training(fire_split) 
+fire_test <- testing(fire_split)
 ```
+
+O objectivo final é averiguar qual o modelo melhor para prever se o fogo foi posto ou não. 
+Decidiu-se experimentar o data set em quatro modelos diferentes, para ver qual deles será o melhor ,e, por consequência, o que faz melhores previsões.
+
+**Multiple Linear Regression Model**
+
+```{r}
+model_lm <- linear_reg(engine="lm") 
+lm_fit1 <- model_lm %>%
+  fit(intentional_cause ~ district, data = fire_train) 
+
+tidy(lm_fit1)
+
+lm_preds1 <-
+  fire_test %>% dplyr::select(intentional_cause) %>% 
+  bind_cols(predict(lm_fit1,fire_test))
+
+lm_preds1 %>% metrics(truth=intentional_cause,estimate=.pred)
+
+#RESULTADOS
+# A tibble: 3 × 3
+#  .metric .estimator .estimate
+#  <chr>   <chr>          <dbl>
+#1 rmse    standard      0.441 
+#2 rsq     standard      0.0527
+#3 mae     standard      0.390 
+
+model_lm <- linear_reg(engine="lm")
+lm_fit2 <- model_lm %>%
+  fit(intentional_cause ~ district + TemperatureCMax, data = fire_train) 
+tidy(lm_fit2)
+
+lm_preds2 <-
+  fire_test %>% dplyr::select(intentional_cause) %>% 
+  bind_cols(predict(lm_fit2,fire_test))
+lm_preds2 %>% metrics(truth=intentional_cause,estimate=.pred)
+
+#RESULTADOS
+# A tibble: 3 × 3
+#  .metric .estimator .estimate
+#  <chr>   <chr>          <dbl>
+#1 rmse    standard      0.433 
+#2 rsq     standard      0.0878
+#3 mae     standard      0.379 
+```
+
+
+**Ridge Regression Model**
+```{r}
+# model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^2,mixture=0)
+model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=0) 
+
+glm_ridge_fit <- model_glm_ridge %>%
+  fit(intentional_cause ~ district + TemperatureCMax, data = fire_train) 
+tidy(glm_ridge_fit)
+
+glm_ridge_preds <-
+  fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(glm_ridge_fit,fire_test))
+glm_ridge_preds %>% metrics(truth=intentional_cause,estimate=.pred)
+#RESULTADOS
+# A tibble: 3 × 3
+#  .metric .estimator .estimate
+#  <chr>   <chr>          <dbl>
+#1 rmse    standard      0.433 
+#2 rsq     standard      0.0877
+#3 mae     standard      0.380 
+
+# model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^2,mixture=0)
+model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=0) 
+
+glm_ridge_fit <- model_glm_ridge %>%
+  fit(intentional_cause ~ district, data = fire_train) 
+tidy(glm_ridge_fit)
+
+glm_ridge_preds <-
+  fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(glm_ridge_fit,fire_test))
+glm_ridge_preds %>% metrics(truth=intentional_cause,estimate=.pred)
+#RESULTADOS
+# A tibble: 3 × 3
+#  .metric .estimator .estimate
+#  <chr>   <chr>          <dbl>
+#1 rmse    standard      0.441 
+#2 rsq     standard      0.0527
+#3 mae     standard      0.390 
+```
+
+
+**Lasso Regression Model**
+```{r}
+# model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^2,mixture=1)
+model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=1) 
+glm_lasso_fit <- model_glm_lasso %>%
+  fit(intentional_cause ~ district, data = fire_train)  
+tidy(glm_lasso_fit)
+
+glm_lasso_preds <-
+  fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(glm_ridge_fit,fire_test))
+glm_lasso_preds %>% metrics(truth=intentional_cause,estimate=.pred)
+#RESULTADOS
+# A tibble: 3 × 3
+#  .metric .estimator .estimate
+#  <chr>   <chr>          <dbl>
+#1 rmse    standard      0.433 
+#2 rsq     standard      0.0877
+#3 mae     standard      0.380 
+
+
+```
+
+
+
+**Cart Tree Model**
+```{r}
+model_rt <- decision_tree(mode="regression", engine="rpart")
+rt_fit <- model_rt %>% 
+  fit(intentional_cause ~ district, data = fire_train)
+
+rt_preds <-
+  fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(rt_fit,fire_test))
+rt_preds %>% metrics(truth=intentional_cause,estimate=.pred)
+#RESULTADOS
+# A tibble: 3 × 3
+#  .metric .estimator .estimate
+#  <chr>   <chr>          <dbl>
+#1 rmse    standard      0.443 
+#2 rsq     standard      0.0449
+#3 mae     standard      0.395 
+
+model_rt <- decision_tree(mode="regression", engine="rpart")
+rt_fit <- model_rt %>% 
+  fit(intentional_cause ~ district + TemperatureCMax, data = fire_train)
+
+rt_preds <-
+  fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(rt_fit,fire_test))
+rt_preds %>% metrics(truth=intentional_cause,estimate=.pred)
+#RESULTADOS
+# A tibble: 3 × 3
+#  .metric .estimator .estimate
+#  <chr>   <chr>          <dbl>
+#1 rmse    standard      0.440 
+#2 rsq     standard      0.0596
+#3 mae     standard      0.388 
+
+```
+
+
+
+Depois de feitas as previsões no modelo, avaliou-se o seu desempenho, como se pode ver nos resultados (comentários), para avaliar, teve-se em conta as métricas rmse, r2 e mae.
+O erro de previsão RMSE (Root Mean Squared Error), este representa a diferença média entre os valores conhecidos observados nos dados de teste e os valores de resultados previstos pelo modelo. Quanto *menor* o valor, melhor o modelo.
+O R-square (R2), que representa a correlação entre os valores observados e os valores previstos. Quanto *maior* o valor, melhor o modelo.
+Erro absoluto médio (MAE) é o erro absoluto médio entre os valores reais e previstos. Quanto *menor* o valor, mais preciso é o modelo.
+Com isto, pode-se concluir que o melhor modelo foi _Multiple Linear Regression Model_ com os resultados:
+- rmse = 0.433 
+- rsq = 0.0878
+- mae = 0.379 
+
+
+
+#### 6. Conclusão
+
+Deve concluir-se que este trabalho abordou diversas temáticas apresentadas nas aulas de Data Mining I. Apresentaram-se algumas adversidades, normais, pois o conjunto de dados teve que ser pré-processado, algumas decisões foram tomadas com intuito de melhorar o conjunto de dados mas que, por consequência, o diminui. Foi possível aplicar aluns modelos de previsão e, assim, usando uma nova linguagem de programação, mais orientada a Data Science ser capaz de prever resultados finais.
+Acresceu-se, ainda, a capacidade de procurar melhorar o conjunto de dados, fornecendo mais dados ao original. 
+Por fim, dentro do possível, completou-se a tarefa do Kaggle.
+
+
+
+

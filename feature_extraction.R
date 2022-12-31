@@ -30,3 +30,29 @@ corrplot(ogi_corr, p.mat = ogi_corr1$p, type="lower", diag=FALSE, sig.level = 0.
 corrplot(cor(ogi_corr), method = "circle")
 
 corrplot(cor(ogi_corr), method = "number")
+#############################
+####CART TREES#########
+#############################
+library(tidyverse)
+library(tidymodels)
+
+path <- paste( getwd(), "/Rdata/Train_Data_noNa.rds",sep = "")
+
+fire_Train_Data <- readRDS(path)
+
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+
+fire_Test_Data <- readRDS(path)
+fire_Test_Data$intentional_cause = NA
+
+model_rt <- decision_tree(mode="regression", engine="rpart")
+rt_fit <- model_rt %>% fit(intentional_cause ~ ., data = fire_Train_Data)
+library(rpart.plot)
+# to extract it from the parsnip
+rt_fit %>% extract_fit_engine() %>% rpart.plot(roundint=FALSE)
+
+library(vip) 
+vip(rt_fit)
+
+fire_tree <- rt_fit %>% extract_fit_engine() 
+fire_tree$variable.importance
