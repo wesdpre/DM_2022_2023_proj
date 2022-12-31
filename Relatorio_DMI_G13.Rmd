@@ -665,15 +665,96 @@ rt_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 ```
 
 
+**KNN model**
+```{r}
+library(tidyverse) 
+library(tidymodels)
+library(modelr)
+library(lubridate)
+library(broom)
+
+path <- paste( getwd(), "/Rdata/Train_Data_noNa.rds",sep = "")
+
+fire_Train_Data <- readRDS(path)
+fire_Train_Data <- fire_Train_Data %>% fill(TemperatureCAvg)
+fire_Train_Data <- fire_Train_Data %>% fill(TemperatureCMax)
+fire_Train_Data <- fire_Train_Data %>% fill(TemperatureCMin)
+fire_Train_Data <- fire_Train_Data %>% fill(HrAvg)
+fire_Train_Data <- fire_Train_Data %>% fill(WindkmhInt)
+
+fire_Train_Data$intentional_cause <- as.factor(fire_Train_Data$intentional_cause)
+apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
+
+str(fire_Train_Data) 
+summary(fire_Train_Data)
+
+set.seed(1234)
+#f_split <- fIndiansDiabetes %>% initial_split(prop=.7)
+f_split <- fire_Train_Data %>% initial_split(prop=.7,strata=intentional_cause) 
+f_split
+
+train <- training(f_split)
+test <- testing(f_split)
+summary(train$intentional_cause)
+summary(test$intentional_cause)
+
+f_rec <- recipe(intentional_cause ~.,train) 
+f_rec
+
+f_rec <- f_rec %>% step_normalize(all_numeric_predictors()) %>% prep() 
+f_train <- f_rec %>% bake(new_data=NULL)
+f_test <- f_rec %>% bake(new_data=test)
+
+
+
+library(kknn)
+model_knn <- nearest_neighbor(mode="classification")
+
+#Fit the k-nn algorithm to the train data and inspect the obtained model.
+knn_fit <- model_knn %>%
+  fit(intentional_cause ~ district + TemperatureCMax + WindkmhInt + TemperatureCAvg + TemperatureCMin + village_area + extinction_hour + farming_area + village_veget_area, data = f_train, na.action = na.exclude)#prever intentional_cause em relação a todas as variaveis
+knn_fit
+
+
+#Make predictions on the test set.
+knn_preds <- predict(knn_fit,new_data = f_test)
+knn_preds
+
+#como saber a mat de confusão se não tenho output para comparar??±?±?±?±
+knn_preds <-
+  f_test %>% dplyr::select(intentional_cause) %>% 
+  bind_cols(predict(knn_fit, f_test))
+
+knn_preds %>% conf_mat(intentional_cause,.pred_class) %>% autoplot(type="heatmap") 
+knn_preds %>% metrics(truth=intentional_cause,estimate=.pred_class)
+
+#RESULTADOS
+# A tibble: 2 × 3
+#  .metric  .estimator .estimate
+#  <chr>    <chr>          <dbl>
+#1 accuracy binary         0.690
+#2 kap      binary         0.202
+```
+
 
 Depois de feitas as previsões no modelo, avaliou-se o seu desempenho, como se pode ver nos resultados (comentários), para avaliar, teve-se em conta as métricas rmse, r2 e mae.
 O erro de previsão RMSE (Root Mean Squared Error), este representa a diferença média entre os valores conhecidos observados nos dados de teste e os valores de resultados previstos pelo modelo. Quanto *menor* o valor, melhor o modelo.
 O R-square (R2), que representa a correlação entre os valores observados e os valores previstos. Quanto *maior* o valor, melhor o modelo.
 Erro absoluto médio (MAE) é o erro absoluto médio entre os valores reais e previstos. Quanto *menor* o valor, mais preciso é o modelo.
-Com isto, pode-se concluir que o melhor modelo foi _Multiple Linear Regression Model_ com os resultados:
-- rmse = 0.433 
-- rsq = 0.0878
-- mae = 0.379 
+Com isto, pode-se concluir que o melhor modelo foi _KNN Model_ com uma _accuracy_ de 69%.
+Foi colocado no kaggle a sua previsão.
+```{r}
+#para o kaggle
+
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prev <- predict(knn_fit, fire_Test_Data, , type = "class")
+prev = cbind("id"=rownames(prev),prev)
+names(prev)[length(names(prev))]<-"intentional_cause" 
+write.csv(prev, "grupo13_DMI.csv", row.names=FALSE)
+```
+
 
 
 

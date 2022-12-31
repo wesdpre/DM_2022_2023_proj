@@ -152,19 +152,14 @@ lm_preds1 <-
 lm_preds1 %>% metrics(truth=intentional_cause,estimate=.pred)
 
 #model_lm <- linear_reg(engine="lm")
+
 lm_fit2 <- model_lm %>%
-  fit(intentional_cause ~ district + TemperatureCMax, data = fire_train) 
+  fit(intentional_cause ~ district + TemperatureCMax + WindkmhInt + TemperatureCAvg + TemperatureCMin + village_area + extinction_hour + farming_area + village_veget_area, data = fire_train) 
 tidy(lm_fit2)
 
 lm_preds2 <-
   fire_test %>% dplyr::select(intentional_cause) %>% 
   bind_cols(predict(lm_fit2,fire_test))
-lm_preds2 %>% metrics(truth=intentional_cause,estimate=.pred)
-
-
-load(file="Rdata/Test_Data_noNa.Rdata")
-test_data_noNa$fire_duration <- as.numeric(difftime(as_datetime(paste(date(train_data_NA$extinction_date), train_data_NA$extinction_hour)), as_datetime(paste(date(train_data_NA$alert_date), train_data_NA$alert_hour)), units = "mins"))
-train_data_NA$fire_duration <- ifelse(train_data_NA$fire_duration < 0, 0, train_data_NA$fire_duration) 
 
 ##################################Ridge Regressio##################################################################
 # model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^2,mixture=0)
@@ -189,6 +184,7 @@ glm_ridge_preds <-
   fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(glm_ridge_fit,fire_test))
 glm_ridge_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 
+
 ##################################Lasso Regression##################################################################
 # model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^2,mixture=1)
 model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=1) 
@@ -209,6 +205,8 @@ tidy(glm_lasso_fit)
 glm_lasso_preds <-
   fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(glm_ridge_fit,fire_test))
 glm_lasso_preds %>% metrics(truth=intentional_cause,estimate=.pred)
+
+
 
 #############################CART TREES#############################################################################
 model_rt <- decision_tree(mode="regression", engine="rpart")
@@ -234,3 +232,78 @@ rt_fit <- model_rt %>%
 rt_preds <-
   fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(rt_fit,fire_test))
 rt_preds %>% metrics(truth=intentional_cause,estimate=.pred)
+
+
+
+
+#####################################KNN##############################################
+library(tidyverse) 
+library(tidymodels)
+library(modelr)
+library(lubridate)
+library(broom)
+
+path <- paste( getwd(), "/Rdata/Train_Data_noNa.rds",sep = "")
+
+fire_Train_Data <- readRDS(path)
+fire_Train_Data <- fire_Train_Data %>% fill(TemperatureCAvg)
+fire_Train_Data <- fire_Train_Data %>% fill(TemperatureCMax)
+fire_Train_Data <- fire_Train_Data %>% fill(TemperatureCMin)
+fire_Train_Data <- fire_Train_Data %>% fill(HrAvg)
+fire_Train_Data <- fire_Train_Data %>% fill(WindkmhInt)
+
+fire_Train_Data$intentional_cause <- as.factor(fire_Train_Data$intentional_cause)
+apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
+
+str(fire_Train_Data) 
+summary(fire_Train_Data)
+
+set.seed(1234)
+#f_split <- fIndiansDiabetes %>% initial_split(prop=.7)
+f_split <- fire_Train_Data %>% initial_split(prop=.7,strata=intentional_cause) 
+f_split
+
+train <- training(f_split)
+test <- testing(f_split)
+summary(train$intentional_cause)
+summary(test$intentional_cause)
+
+f_rec <- recipe(intentional_cause ~.,train) 
+f_rec
+
+f_rec <- f_rec %>% step_normalize(all_numeric_predictors()) %>% prep() 
+f_train <- f_rec %>% bake(new_data=NULL)
+f_test <- f_rec %>% bake(new_data=test)
+
+
+
+library(kknn)
+model_knn <- nearest_neighbor(mode="classification")
+
+#Fit the k-nn algorithm to the train data and inspect the obtained model.
+knn_fit <- model_knn %>%
+  fit(intentional_cause ~ district + TemperatureCMax + WindkmhInt + TemperatureCAvg + TemperatureCMin + village_area + extinction_hour + farming_area + village_veget_area, data = f_train, na.action = na.exclude)#prever intentional_cause em relação a todas as variaveis
+knn_fit
+
+
+#Make predictions on the test set.
+knn_preds <- predict(knn_fit,new_data = f_test)
+knn_preds
+
+#como saber a mat de confusão se não tenho output para comparar??±?±?±?±
+knn_preds <-
+  f_test %>% dplyr::select(intentional_cause) %>% 
+  bind_cols(predict(knn_fit, f_test))
+
+knn_preds %>% conf_mat(intentional_cause,.pred_class) %>% autoplot(type="heatmap") 
+knn_preds %>% metrics(truth=intentional_cause,estimate=.pred_class)
+
+#para o kaggle
+
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prev <- predict(knn_fit, fire_Test_Data, , type = "class")
+prev = cbind("id"=rownames(prev),prev)
+names(prev)[length(names(prev))]<-"intentional_cause" 
+write.csv(prev, "grupo13_DMI.csv", row.names=FALSE)

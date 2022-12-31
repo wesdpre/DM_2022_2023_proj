@@ -114,6 +114,12 @@ save(dataset_test, file="Rdata/Test_Data_na.Rdata")
 # não remover NAs
 test_data_noNAs <- test_data_NA
 test_data_noNAs <- test_data_noNAs %>% select(-c(region,lon,lat))
+test_data_noNAs <- test_data_noNAs %>% fill(TemperatureCAvg, .direction = "updown")
+test_data_noNAs <- test_data_noNAs %>% fill(HrAvg, .direction = "updown")
+test_data_noNAs <- test_data_noNAs %>% fill(WindkmhInt, .direction = "updown")
+test_data_noNAs <- test_data_noNAs %>% fill(TemperatureCMax, .direction = "updown")
+test_data_noNAs <- test_data_noNAs %>% fill(TemperatureCMin, .direction = "updown")
+apply(X = is.na(test_data_noNAs), MARGIN = 2, FUN = sum)
 save(test_data_noNAs, file="Rdata/Test_Data_noNa.Rdata")
 saveRDS(test_data_noNAs, "Rdata/Test_Data_noNa.rds")
 cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Test_Data) - nrow(test_data_noNAs)) / nrow(fire_Test_Data) * 100), '%')
