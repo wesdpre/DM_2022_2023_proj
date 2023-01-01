@@ -106,6 +106,8 @@ lm_preds2 <-
   fire_test %>% dplyr::select(intentional_cause) %>% 
   bind_cols(predict(lm_fit2,fire_test))
 
+lm_preds2 %>% metrics(truth=intentional_cause,estimate=.pred)
+
 ##################################Ridge Regressio##################################################################
 # model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^2,mixture=0)
 model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=0) 
