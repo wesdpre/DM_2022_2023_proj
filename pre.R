@@ -2,9 +2,17 @@ library(tidyverse)
 library(lubridate)
 library(DMwR2)
 library(dplyr)
+library(ggplot2)
 
 fire_Train_Data <- read_csv("fires_train.csv")
 apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
+
+ggplot(fire_Train_Data, aes(x=intentional_cause)) + geom_bar()
+prop.table(table(fire_Train_Data$intentional_cause))
+#        0         1 
+#0.7110964 0.2889036 
+ggplot(fire_Train_Data, aes(x=district,fill=intentional_cause)) + theme_bw() + geom_bar()
+prop.table(table(fire_Train_Data$origin))
 
 fire_Train_Data <- fire_Train_Data %>% select(-c(alert_source, parish))
 

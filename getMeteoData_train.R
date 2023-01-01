@@ -116,3 +116,5 @@ train_data_noNAs <- train_data_noNAs %>% relocate(intentional_cause, .after=fire
 save(train_data_noNAs, file="Rdata/Train_Data_noNa.Rdata")
 saveRDS(train_data_noNAs, "Rdata/Train_Data_noNa.rds")
 cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados original', c((nrow(fire_Train_Data) - nrow(train_data_noNAs)) / nrow(fire_Train_Data) * 100), '%')
+
+

@@ -1,7 +1,7 @@
 ---
 title: "Previsão de Fogo Posto em Portugal 2014-2015"
 author: Joana Pereira (201805191), Pedro Azevedo (201905966), Pedro Santos(201904529)
-date: "01 de janeiro, 2022"
+date: "01 de janeiro, 2023"
 output:
   word_document: default
   html_document:
@@ -393,7 +393,7 @@ load(file="Rdata/ogimetData_test.Rdata")
 #remover colunas que têm demasiados NA's (> 10% do conjunto de dados)
 test_data <- test_data %>% select(-c(station_ID,Date,TotClOct,SunD1h,WindkmhGust,Precmm,SnowDepcm,WindkmhDir,PreselevHp,lowClOct,VisKm,TdAvgC,PresslevHp))
 
-test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"), all = TRUE)[-1]
+test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"), all = TRUE)
 
 # calcular duração do incêndio
 test_data_NA$fire_duration <- as.numeric(difftime(as_datetime(paste(date(test_data_NA$extinction_date), test_data_NA$extinction_hour)), as_datetime(paste(date(test_data_NA$alert_date), test_data_NA$alert_hour)), units = "mins"))
@@ -444,6 +444,7 @@ cat('Percentagem da perda de valores obtidos inicialmente do conjunto de dados o
 O novo conjunto de dados foi guardado com o nome *ogimetData_test.Rdata*, e, também foram eliminadas colunas com muitos valores nulos e de forma a manter a coerência com o conjunto anterior.
 A coluna *id* foi eliminada pois apenas identifica o caso não traz valor para o conjunto de dados, assim sendo, esta deve ser eliminada.
 Bem como, as colunas *lon* e *lat* já não acrescentariam valor, assim, também foram eliminadas.
+Uma vez que não é possível reduzir o número de linhas deste conjunto de dados no final, o valores nulos foram preenchidos pelos valores das linhas acima e abaixo.
 
 #### 3. Feature Extraction
 
@@ -757,6 +758,61 @@ knn_preds %>% metrics(truth=intentional_cause,estimate=.pred_class)
 #  <chr>    <chr>          <dbl>
 #1 accuracy binary         0.690
 #2 kap      binary         0.202
+
+
+#para o kaggle
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prev <- predict(knn_fit, fire_Test_Data)
+names(prev)[length(names(prev))]<-"intentional_cause"
+prev$id <- fire_Test_Data$id
+prev <- prev[c("id", "intentional_cause")]
+
+write.csv(prev, "grupo13_DMI.csv", row.names=FALSE)
+
+
+
+########## KNN sem recipe(intentional_cause ~.,train) e sem step_normalize()
+
+library(kknn)
+model_knn <- nearest_neighbor(mode="classification")
+
+#Fit the k-nn algorithm to the train data and inspect the obtained model.
+knn_fit1 <- model_knn %>%
+  fit(intentional_cause ~ district + TemperatureCMax + WindkmhInt + TemperatureCAvg + TemperatureCMin + village_area + extinction_hour + farming_area + village_veget_area, data = train, na.action = na.exclude)#prever intentional_cause em relação a todas as variaveis
+knn_fit1
+
+
+#Make predictions on the test set.
+knn_preds1 <- predict(knn_fit1,new_data = test)
+knn_preds1
+
+knn_preds1 <-
+  test %>% dplyr::select(intentional_cause) %>% 
+  bind_cols(predict(knn_fit1, test))
+
+knn_preds1 %>% conf_mat(intentional_cause,.pred_class) %>% autoplot(type="heatmap") 
+knn_preds1 %>% metrics(truth=intentional_cause,estimate=.pred_class)
+
+#RESULTADOS
+# A tibble: 2 × 3
+#  .metric  .estimator .estimate
+#  <chr>    <chr>          <dbl>
+#1 accuracy binary         0.690
+#2 kap      binary         0.202
+
+
+#para o kaggle
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prev1 <- predict(knn_fit1, fire_Test_Data)
+names(prev1)[length(names(prev1))]<-"intentional_cause"
+prev1$id <- fire_Test_Data$id
+prev1 <- prev1[c("id", "intentional_cause")]
+
+write.csv(prev1, "grupo13_DMI_.csv", row.names=FALSE)
 ```
 
 Depois de feitas as previsões no modelo, avaliou-se o seu desempenho, como se pode ver nos resultados (comentários), para avaliar, teve-se em conta as métricas rmse, r2 e mae.
@@ -766,24 +822,17 @@ O R-square (R2), que representa a correlação entre os valores observados e os 
 Quanto *maior* o valor, melhor o modelo.
 Erro absoluto médio (MAE) é o erro absoluto médio entre os valores reais e previstos.
 Quanto *menor* o valor, mais preciso é o modelo.
-Com isto, pode-se concluir que o melhor modelo foi *KNN Model* com uma *accuracy* de 69%.
-Foi colocado no kaggle a sua previsão.
+Observando estas métricas, o modelo com melhor resultado foi *Multiple Linear Regression Model*, com o fit _fit(intentional_cause ~ district + TemperatureCMax, data = fire_train)_, pois os resultados foram:
+- rmse    standard      0.433 
+- rsq     standard      0.0878
+- mae     standard      0.379 
+No entanto, o modelo *KNN Model* foi o melhor. Este obteve uma *accuracy* de 69%. Testou-se o modelo usando _recipe()_ e sem usar, esta função precisa ser estimada antes de ser aplicada aos dados. A maioria das etapas da _recipe()_ possui quantidades específicas que devem ser calculadas ou estimadas. Por exemplo, _step_normalize()_ precisa calcular a média do conjunto de treinamento para as colunas selecionadas.
+Após averiguar a melhor métrica a ter em consideração, guardou-se os dados num ficheiro _csv_, e, este foi colocado no kaggle a sua previsão, sendo que com a _recipe()_ não foi obtido pontução suficiente, contudo, sem esse pre-processamento a previsão obteve pontuação suficiente.
 
-```{r}
-#para o kaggle
-
-path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
-fire_Test_Data <- readRDS(path)
-
-prev <- predict(knn_fit, fire_Test_Data, , type = "class")
-prev = cbind("id"=rownames(prev),prev)
-names(prev)[length(names(prev))]<-"intentional_cause" 
-write.csv(prev, "grupo13_DMI.csv", row.names=FALSE)
-```
 
 #### 5. Conclusão
 
 Deve concluir-se que este trabalho abordou diversas temáticas apresentadas nas aulas de Data Mining I. Apresentaram-se algumas adversidades, normais, pois o conjunto de dados teve que ser pré-processado, algumas decisões foram tomadas com intuito de melhorar o conjunto de dados mas que, por consequência, o diminui.
-Foi possível aplicar aluns modelos de previsão e, assim, usando uma nova linguagem de programação, mais orientada a Data Science ser capaz de prever resultados finais.
-Acresceu-se, ainda, a capacidade de procurar melhorar o conjunto de dados, fornecendo mais dados ao original.
-Por fim, dentro do possível, completou-se a tarefa do Kaggle.
+Foi possível aplicar alguns modelos de previsão e, contudo, é de salientar a dificuldade em obter bons modelos de previsão. No entanto, usando R, uma linguagem orientada a Data Science, foi possível prever se foi fogo posto.
+Deve salientar-se, no entanto, que o trabalho provou-se muito interessante e com um final positivo.
+Por fim, completou-se o trabalho entregando o ficheiro com a previsão na plataforma Kaggle.

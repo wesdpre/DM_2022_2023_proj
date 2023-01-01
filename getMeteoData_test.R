@@ -77,7 +77,7 @@ load(file="Rdata/ogimetData_test.Rdata")
 #remover colunas que têm demasiados NA's (> 10% do conjunto de dados)
 test_data <- test_data %>% select(-c(station_ID,Date,TotClOct,SunD1h,WindkmhGust,Precmm,SnowDepcm,WindkmhDir,PreselevHp,lowClOct,VisKm,TdAvgC,PresslevHp))
 
-test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"), all = TRUE)[-1]
+test_data_NA <- merge(fire_Test_Data, test_data, by = c("id"), all = TRUE)
 
 # calcular duração do incêndio
 test_data_NA$fire_duration <- as.numeric(difftime(as_datetime(paste(date(test_data_NA$extinction_date), test_data_NA$extinction_hour)), as_datetime(paste(date(test_data_NA$alert_date), test_data_NA$alert_hour)), units = "mins"))
