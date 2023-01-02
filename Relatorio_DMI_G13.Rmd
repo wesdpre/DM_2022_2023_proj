@@ -603,19 +603,12 @@ tidy(glm_ridge_fit)
 glm_ridge_preds <-
   fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(glm_ridge_fit,fire_test))
 glm_ridge_preds %>% metrics(truth=intentional_cause,estimate=.pred)
-#RESULTADOS
-# A tibble: 3 × 3
-#  .metric .estimator .estimate
-#  <chr>   <chr>          <dbl>
-#1 rmse    standard      0.433 
-#2 rsq     standard      0.0877
-#3 mae     standard      0.380 
 
 # model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^2,mixture=0)
 model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=0) 
 
 glm_ridge_fit <- model_glm_ridge %>%
-  fit(intentional_cause ~ district, data = fire_train) 
+  fit(intentional_cause ~ district + TemperatureCMax + WindkmhInt + TemperatureCAvg + TemperatureCMin + village_area + extinction_hour + farming_area + village_veget_area, data = fire_train) 
 tidy(glm_ridge_fit)
 
 glm_ridge_preds <-
@@ -625,9 +618,21 @@ glm_ridge_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 # A tibble: 3 × 3
 #  .metric .estimator .estimate
 #  <chr>   <chr>          <dbl>
-#1 rmse    standard      0.441 
-#2 rsq     standard      0.0527
-#3 mae     standard      0.390 
+#1 rmse    standard      0.433 
+#2 rsq     standard      0.0892
+#3 mae     standard      0.377
+
+#para o kaggle
+
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prevRG <- predict(glm_ridge_fit, fire_Test_Data)
+names(prevRG)[length(names(prevRG))]<-"intentional_cause"
+prevRG$id <- fire_Test_Data$id
+prevRG <- prevRG[c("id", "intentional_cause")]
+
+write.csv(prevRG, "grupo13_DMI_13RG.csv", row.names=FALSE)
 ```
 
 **Lasso Regression Model**
@@ -642,13 +647,37 @@ tidy(glm_lasso_fit)
 glm_lasso_preds <-
   fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(glm_ridge_fit,fire_test))
 glm_lasso_preds %>% metrics(truth=intentional_cause,estimate=.pred)
+
+# model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^2,mixture=1)
+model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=1) 
+glm_lasso_fit <- model_glm_lasso %>%
+  fit(intentional_cause ~ district + TemperatureCMax + WindkmhInt + TemperatureCAvg + TemperatureCMin + village_area + extinction_hour + farming_area + village_veget_area, data = fire_train) 
+tidy(glm_lasso_fit)
+
+glm_lasso_preds <-
+  fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(glm_ridge_fit,fire_test))
+glm_lasso_preds %>% metrics(truth=intentional_cause,estimate=.pred)
+
 #RESULTADOS
 # A tibble: 3 × 3
 #  .metric .estimator .estimate
 #  <chr>   <chr>          <dbl>
 #1 rmse    standard      0.433 
-#2 rsq     standard      0.0877
-#3 mae     standard      0.380 
+#2 rsq     standard      0.0892
+#3 mae     standard      0.377 
+
+#para o kaggle
+
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prevLG <- predict(glm_lasso_fit, fire_Test_Data)
+names(prevLG)[length(names(prevLG))]<-"intentional_cause"
+prevLG$id <- fire_Test_Data$id
+prevLG <- prevLG[c("id", "intentional_cause")]
+
+write.csv(prevLG, "grupo13_DMI_13LG.csv", row.names=FALSE)
+
 
 
 ```
@@ -656,35 +685,92 @@ glm_lasso_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 **Cart Tree Model**
 
 ```{r}
+library(tidyverse) 
+library(tidymodels)
+library(modelr)
+library(lubridate)
+library(broom)
+
+path <- paste( getwd(), "/Rdata/Train_Data_noNa.rds",sep = "")
+
+fire_Train_Data <- readRDS(path)
+
+set.seed(1234)
+#f_split <- fIndiansDiabetes %>% initial_split(prop=.7)
+f_split <- fire_Train_Data %>% initial_split(prop=.7,strata=intentional_cause) 
+f_split
+
+train <- training(f_split)
+test <- testing(f_split)
+summary(train$intentional_cause)
+summary(test$intentional_cause)
+
+f_rec <- recipe(intentional_cause ~.,train) 
+f_rec
+
+f_rec <- f_rec %>% step_normalize(all_numeric_predictors()) %>% prep() 
+f_train <- f_rec %>% bake(new_data=NULL)
+f_test <- f_rec %>% bake(new_data=test)
+
 model_rt <- decision_tree(mode="regression", engine="rpart")
 rt_fit <- model_rt %>% 
-  fit(intentional_cause ~ district, data = fire_train)
+  fit(intentional_cause ~ district, data = f_train)
 
 rt_preds <-
-  fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(rt_fit,fire_test))
+  f_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(rt_fit,f_test))
 rt_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 #RESULTADOS
 # A tibble: 3 × 3
 #  .metric .estimator .estimate
 #  <chr>   <chr>          <dbl>
-#1 rmse    standard      0.443 
-#2 rsq     standard      0.0449
-#3 mae     standard      0.395 
+#1 rmse    standard      0.444 
+#2 rsq     standard      0.0421
+#3 mae     standard      0.397 
 
 model_rt <- decision_tree(mode="regression", engine="rpart")
 rt_fit <- model_rt %>% 
   fit(intentional_cause ~ district + TemperatureCMax, data = fire_train)
 
 rt_preds <-
-  fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(rt_fit,fire_test))
+  f_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(rt_fit,f_test))
 rt_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 #RESULTADOS
 # A tibble: 3 × 3
 #  .metric .estimator .estimate
 #  <chr>   <chr>          <dbl>
-#1 rmse    standard      0.440 
-#2 rsq     standard      0.0596
-#3 mae     standard      0.388 
+#1 rmse    standard      0.452 
+#2 rsq     standard      0.0421
+#3 mae     standard      0.379 
+
+
+model_rt <- decision_tree(mode="regression", engine="rpart")
+rt_fit <- model_rt %>% 
+  fit(intentional_cause ~ district + TemperatureCMax + WindkmhInt + TemperatureCAvg + TemperatureCMin + village_area + extinction_hour + farming_area + village_veget_area, data = train)
+
+rt_preds <-
+  test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(rt_fit,test))
+rt_preds %>% metrics(truth=intentional_cause,estimate=.pred)
+#RESULTADOS
+# A tibble: 3 × 3
+#  .metric .estimator .estimate
+#  <chr>   <chr>          <dbl>
+#1 rmse    standard      0.433 
+#2 rsq     standard      0.0880
+#3 mae     standard      0.376 
+
+#para o kaggle
+
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prevCT <- predict(rt_fit, fire_Test_Data)
+names(prevCT)[length(names(prevCT))]<-"intentional_cause"
+prevCT$id <- fire_Test_Data$id
+prevCT <- prevCT[c("id", "intentional_cause")]
+
+write.csv(prevCT, "grupo13_DMI_13CT.csv", row.names=FALSE)
+
+
 
 ```
 
@@ -822,12 +908,20 @@ O R-square (R2), que representa a correlação entre os valores observados e os 
 Quanto *maior* o valor, melhor o modelo.
 Erro absoluto médio (MAE) é o erro absoluto médio entre os valores reais e previstos.
 Quanto *menor* o valor, mais preciso é o modelo.
-Observando estas métricas, o modelo com melhor resultado foi *Multiple Linear Regression Model*, com o fit _fit(intentional_cause ~ district + TemperatureCMax, data = fire_train)_, pois os resultados foram:
+Observando estas métricas, um modelo com bons resultados foi *Multiple Linear Regression Model*, com o fit _fit(intentional_cause ~ district + TemperatureCMax, data = fire_train)_, pois os resultados foram:
 - rmse    standard      0.433 
 - rsq     standard      0.0878
-- mae     standard      0.379 
-No entanto, o modelo *KNN Model* foi o melhor. Este obteve uma *accuracy* de 69%. Testou-se o modelo usando _recipe()_ e sem usar, esta função precisa ser estimada antes de ser aplicada aos dados. A maioria das etapas da _recipe()_ possui quantidades específicas que devem ser calculadas ou estimadas. Por exemplo, _step_normalize()_ precisa calcular a média do conjunto de treinamento para as colunas selecionadas.
-Após averiguar a melhor métrica a ter em consideração, guardou-se os dados num ficheiro _csv_, e, este foi colocado no kaggle a sua previsão, sendo que com a _recipe()_ não foi obtido pontução suficiente, contudo, sem esse pre-processamento a previsão obteve pontuação suficiente.
+- mae     standard      0.379
+Testou-se também, o *Lasso Regression Model*, cujos resultados foram:
+-  rmse    standard      0.433 
+-  rsq     standard      0.0892
+-  mae     standard      0.377 
+No entanto, é de salientar, que o modelo com melhor pontuação (kaggle) foi *Ridge Regression Model*, onde mae é menor e rsq maior.
+-  rmse    standard      0.433 
+-  rsq     standard      0.0892
+-  mae     standard      0.377 
+No entanto, o modelo *KNN Model* obteve uma *accuracy* de 69%. Testou-se o modelo usando _recipe()_ e sem usar, esta função precisa ser estimada antes de ser aplicada aos dados. A maioria das etapas da _recipe()_ possui quantidades específicas que devem ser calculadas ou estimadas. Por exemplo, _step_normalize()_ precisa calcular a média do conjunto de treinamento para as colunas selecionadas.
+Após averiguar a melhor métrica a ter em consideração, guardou-se os dados num ficheiro _csv_, e, este foi colocado no kaggle a sua previsão, sendo que com a _recipe()_ não foi obtido pontução suficiente, contudo, sem esse pre-processamento a previsão obteve pontuação suficiente. Também foi colocado no kaggle as pevisões feitas por *Ridge Regression Model*, *Lasso Regression Model* e *Multiple Linear Regression Model*, de salientar que foi *Ridge Regression Model* que obteve ainda melhor pontução.
 
 
 #### 5. Conclusão

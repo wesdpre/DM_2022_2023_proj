@@ -108,7 +108,21 @@ lm_preds2 <-
 
 lm_preds2 %>% metrics(truth=intentional_cause,estimate=.pred)
 
-##################################Ridge Regressio##################################################################
+
+#para o kaggle
+
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prev13 <- predict(lm_fit2, fire_Test_Data)
+names(prev13)[length(names(prev13))]<-"intentional_cause"
+prev13$id <- fire_Test_Data$id
+prev13 <- prev13[c("id", "intentional_cause")]
+
+write.csv(prev13, "grupo13_DMI_13.csv", row.names=FALSE)
+
+
+##################################Ridge Regression##################################################################
 # model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^2,mixture=0)
 model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=0) 
 
@@ -124,13 +138,25 @@ glm_ridge_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 model_glm_ridge <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=0) 
 
 glm_ridge_fit <- model_glm_ridge %>%
-  fit(intentional_cause ~ district, data = fire_train) 
+  fit(intentional_cause ~ district + TemperatureCMax + WindkmhInt + TemperatureCAvg + TemperatureCMin + village_area + extinction_hour + farming_area + village_veget_area, data = fire_train) 
 tidy(glm_ridge_fit)
 
 glm_ridge_preds <-
   fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(glm_ridge_fit,fire_test))
 glm_ridge_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 
+
+#para o kaggle
+
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prevRG <- predict(glm_ridge_fit, fire_Test_Data)
+names(prevRG)[length(names(prevRG))]<-"intentional_cause"
+prevRG$id <- fire_Test_Data$id
+prevRG <- prevRG[c("id", "intentional_cause")]
+
+write.csv(prevRG, "grupo13_DMI_13RG.csv", row.names=FALSE)
 
 ##################################Lasso Regression##################################################################
 # model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^2,mixture=1)
@@ -146,14 +172,24 @@ glm_lasso_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 # model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^2,mixture=1)
 model_glm_lasso <- linear_reg(engine="glmnet",penalty = 10^-2,mixture=1) 
 glm_lasso_fit <- model_glm_lasso %>%
-  fit(intentional_cause ~ district + TemperatureCMax  + WindkmhInt, data = fire_train)  
+  fit(intentional_cause ~ district + TemperatureCMax + WindkmhInt + TemperatureCAvg + TemperatureCMin + village_area + extinction_hour + farming_area + village_veget_area, data = fire_train) 
 tidy(glm_lasso_fit)
 
 glm_lasso_preds <-
   fire_test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(glm_ridge_fit,fire_test))
 glm_lasso_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 
+#para o kaggle
 
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prevLG <- predict(glm_lasso_fit, fire_Test_Data)
+names(prevLG)[length(names(prevLG))]<-"intentional_cause"
+prevLG$id <- fire_Test_Data$id
+prevLG <- prevLG[c("id", "intentional_cause")]
+
+write.csv(prevLG, "grupo13_DMI_13LG.csv", row.names=FALSE)
 
 #############################CART TREES#############################################################################
 library(tidyverse) 
@@ -165,15 +201,6 @@ library(broom)
 path <- paste( getwd(), "/Rdata/Train_Data_noNa.rds",sep = "")
 
 fire_Train_Data <- readRDS(path)
-fire_Train_Data <- fire_Train_Data %>% fill(TemperatureCAvg)
-fire_Train_Data <- fire_Train_Data %>% fill(TemperatureCMax)
-fire_Train_Data <- fire_Train_Data %>% fill(TemperatureCMin)
-fire_Train_Data <- fire_Train_Data %>% fill(HrAvg)
-fire_Train_Data <- fire_Train_Data %>% fill(WindkmhInt)
-apply(X = is.na(fire_Train_Data), MARGIN = 2, FUN = sum)
-
-str(fire_Train_Data) 
-summary(fire_Train_Data)
 
 set.seed(1234)
 #f_split <- fIndiansDiabetes %>% initial_split(prop=.7)
@@ -216,7 +243,17 @@ rt_preds <-
   test %>% dplyr::select(intentional_cause) %>% bind_cols(predict(rt_fit,test))
 rt_preds %>% metrics(truth=intentional_cause,estimate=.pred)
 
+#para o kaggle
 
+path <- paste( getwd(), "/Rdata/Test_Data_noNa.rds",sep = "")
+fire_Test_Data <- readRDS(path)
+
+prevCT <- predict(rt_fit, fire_Test_Data)
+names(prevCT)[length(names(prevCT))]<-"intentional_cause"
+prevCT$id <- fire_Test_Data$id
+prevCT <- prevCT[c("id", "intentional_cause")]
+
+write.csv(prevCT, "grupo13_DMI_13CT.csv", row.names=FALSE)
 
 #####################################KNN##############################################
 library(tidyverse) 
